@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>行き先掲示板</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <div class="header">
+      <h1>📋 行き先掲示板</h1>
+      <p class="subtitle">社員の現在地をリアルタイムで確認</p>
+      <div class="nav-links">
+        <a href="/admin.html">⚙️ 管理画面</a>
+      </div>
+    </div>
+
+    <!-- 一括変更エリア -->
+    <div class="bulk-update-area">
+      <h2>📝 選択した社員の行き先を一括変更</h2>
+      <form class="bulk-form" id="bulkForm">
+        <div class="form-group history-group">
+          <label for="bulkDestination">行き先</label>
+          <input 
+            type="text" 
+            id="bulkDestination" 
+            placeholder="例: 外出、会議室A、本社"
+            autocomplete="off"
+          >
+          <div class="history-dropdown" id="historyDropdown"></div>
+        </div>
+        <div class="form-group">
+          <label for="bulkReturn">戻り</label>
+          <input 
+            type="text" 
+            id="bulkReturn" 
+            placeholder="例: 15:00、未定"
+          >
+        </div>
+        <div class="form-group">
+          <label for="bulkRemarks">備考</label>
+          <input 
+            type="text" 
+            id="bulkRemarks" 
+            placeholder="例: 携帯連絡可"
+          >
+        </div>
+        <div class="form-group">
+          <button type="submit" class="btn btn-primary" id="bulkUpdateBtn" disabled>
+            一括更新
+          </button>
+          <button type="button" class="btn btn-secondary" id="clearSelectionBtn">
+            選択解除
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- メッセージ表示 -->
+    <div class="message" id="message"></div>
+
+    <!-- ローディング -->
+    <div class="loading" id="loading">
+      <div class="loading-spinner"></div>
+      <p>読み込み中...</p>
+    </div>
+
+    <!-- テーブル -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th class="checkbox-col">
+              <input type="checkbox" id="selectAll">
+            </th>
+            <th class="department-col">所属</th>
+            <th class="name-col">名前</th>
+            <th class="destination-col">行き先</th>
+            <th class="return-col">戻り</th>
+            <th class="remarks-col">備考</th>
+            <th class="actions-col">操作</th>
+          </tr>
+        </thead>
+        <tbody id="employeeTableBody">
+          <!-- JavaScriptで動的に生成 -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 編集モーダル -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>行き先を編集</h3>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>社員名</label>
+          <input type="text" id="editEmployeeName" disabled>
+        </div>
+        <div class="form-group history-group">
+          <label for="editDestination">行き先</label>
+          <input 
+            type="text" 
+            id="editDestination" 
+            placeholder="空白の場合は「在席」になります"
+            autocomplete="off"
+          >
+          <div class="history-dropdown" id="editHistoryDropdown"></div>
+        </div>
+        <div class="form-group">
+          <label for="editReturn">戻り</label>
+          <input type="text" id="editReturn" placeholder="例: 15:00、未定">
+        </div>
+        <div class="form-group">
+          <label for="editRemarks">備考</label>
+          <input type="text" id="editRemarks" placeholder="例: 携帯連絡可">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancelEditBtn">
+          キャンセル
+        </button>
+        <button type="button" class="btn btn-primary" id="saveEditBtn">
+          保存
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/main.js"></script>
+</body>
+</html>

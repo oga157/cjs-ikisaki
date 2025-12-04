@@ -1,0 +1,339 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+const path = require('path');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// データベース接続
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
+
+// ミドルウェア
+app.use(cors());
+app.use(express.json());
+app.use(express.static('public'));
+
+// データベース接続確認
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('データベース接続エラー:', err.stack);
+  } else {
+    console.log('データベース接続成功');
+    release();
+  }
+});
+
+// ========================================
+// 社員関連API
+// ========================================
+
+// 全社員取得（表示順）
+app.get('/api/employees', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM employees ORDER BY display_order ASC'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 社員追加
+app.post('/api/employees', async (req, res) => {
+  const { department, name } = req.body;
+  
+  if (!department || !name) {
+    return res.status(400).json({ error: '所属と名前は必須です' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 最大display_orderを取得
+    const maxOrder = await client.query(
+      'SELECT COALESCE(MAX(display_order), 0) as max_order FROM employees'
+    );
+    const newOrder = maxOrder.rows[0].max_order + 1;
+
+    // 社員追加
+    const employeeResult = await client.query(
+      'INSERT INTO employees (department, name, display_order) VALUES ($1, $2, $3) RETURNING *',
+      [department, name, newOrder]
+    );
+
+    // 行き先情報の初期レコード作成
+    await client.query(
+      'INSERT INTO whereabouts (employee_id, destination, return_time, remarks) VALUES ($1, $2, $3, $4)',
+      [employeeResult.rows[0].id, '', '', '']
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json(employeeResult.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+// 社員更新
+app.put('/api/employees/:id', async (req, res) => {
+  const { id } = req.params;
+  const { department, name } = req.body;
+
+  if (!department || !name) {
+    return res.status(400).json({ error: '所属と名前は必須です' });
+  }
+
+  try {
+    const result = await pool.query(
+      'UPDATE employees SET department = $1, name = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+      [department, name, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: '社員が見つかりません' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 社員削除
+app.delete('/api/employees/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM employees WHERE id = $1 RETURNING *',
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: '社員が見つかりません' });
+    }
+
+    res.json({ message: '削除しました' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 社員並び替え
+app.put('/api/employees/reorder', async (req, res) => {
+  const { orders } = req.body; // [{ id: 1, display_order: 1 }, ...]
+
+  if (!Array.isArray(orders)) {
+    return res.status(400).json({ error: '不正なデータ形式です' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    for (const item of orders) {
+      await client.query(
+        'UPDATE employees SET display_order = $1, updated_at = NOW() WHERE id = $2',
+        [item.display_order, item.id]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ message: '並び替えが完了しました' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+// ========================================
+// 行き先関連API
+// ========================================
+
+// 全行き先情報取得（社員情報含む）
+app.get('/api/whereabouts', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        e.id,
+        e.department,
+        e.name,
+        e.display_order,
+        COALESCE(w.destination, '') as destination,
+        COALESCE(w.return_time, '') as return_time,
+        COALESCE(w.remarks, '') as remarks,
+        w.updated_at
+      FROM employees e
+      LEFT JOIN whereabouts w ON e.id = w.employee_id
+      ORDER BY e.display_order ASC
+    `);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 複数社員の行き先一括更新
+app.put('/api/whereabouts/bulk', async (req, res) => {
+  const { employeeIds, destination, return_time, remarks } = req.body;
+
+  if (!Array.isArray(employeeIds) || employeeIds.length === 0) {
+    return res.status(400).json({ error: '社員IDが指定されていません' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    for (const employeeId of employeeIds) {
+      // 行き先更新
+      await client.query(
+        `UPDATE whereabouts 
+         SET destination = $1, return_time = $2, remarks = $3, updated_at = NOW() 
+         WHERE employee_id = $4`,
+        [destination || '', return_time || '', remarks || '', employeeId]
+      );
+
+      // 履歴更新（行き先が空でない場合）
+      if (destination && destination.trim() !== '') {
+        await client.query(
+          'DELETE FROM destination_history WHERE employee_id = $1 AND destination = $2',
+          [employeeId, destination]
+        );
+
+        await client.query(
+          'INSERT INTO destination_history (employee_id, destination, last_used_at) VALUES ($1, $2, NOW())',
+          [employeeId, destination]
+        );
+
+        await client.query(
+          `DELETE FROM destination_history 
+           WHERE employee_id = $1 
+           AND id NOT IN (
+             SELECT id FROM destination_history 
+             WHERE employee_id = $1 
+             ORDER BY last_used_at DESC 
+             LIMIT 5
+           )`,
+          [employeeId]
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+    res.json({ message: `${employeeIds.length}件の行き先を更新しました` });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+// 行き先更新
+app.put('/api/whereabouts/:employeeId', async (req, res) => {
+  const { employeeId } = req.params;
+  const { destination, return_time, remarks } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // 行き先更新
+    const result = await client.query(
+      `UPDATE whereabouts 
+       SET destination = $1, return_time = $2, remarks = $3, updated_at = NOW() 
+       WHERE employee_id = $4 
+       RETURNING *`,
+      [destination || '', return_time || '', remarks || '', employeeId]
+    );
+
+    // 行き先が空でない場合、履歴に追加
+    if (destination && destination.trim() !== '') {
+      // 既存の同じ行き先を削除
+      await client.query(
+        'DELETE FROM destination_history WHERE employee_id = $1 AND destination = $2',
+        [employeeId, destination]
+      );
+
+      // 新しい履歴を追加
+      await client.query(
+        'INSERT INTO destination_history (employee_id, destination, last_used_at) VALUES ($1, $2, NOW())',
+        [employeeId, destination]
+      );
+
+      // 直近5件以外を削除
+      await client.query(
+        `DELETE FROM destination_history 
+         WHERE employee_id = $1 
+         AND id NOT IN (
+           SELECT id FROM destination_history 
+           WHERE employee_id = $1 
+           ORDER BY last_used_at DESC 
+           LIMIT 5
+         )`,
+        [employeeId]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json(result.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
+// ========================================
+// 履歴関連API
+// ========================================
+
+// 社員の行き先履歴取得（直近5件）
+app.get('/api/history/:employeeId', async (req, res) => {
+  const { employeeId } = req.params;
+
+  try {
+    const result = await pool.query(
+      `SELECT destination, last_used_at 
+       FROM destination_history 
+       WHERE employee_id = $1 
+       ORDER BY last_used_at DESC 
+       LIMIT 5`,
+      [employeeId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ========================================
+// サーバー起動
+// ========================================
+
+app.listen(PORT, () => {
+  console.log(`サーバーが起動しました: http://localhost:${PORT}`);
+});

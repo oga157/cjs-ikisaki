@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理画面 - 行き先掲示板</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <div class="header">
+      <h1>⚙️ 管理画面</h1>
+      <p class="subtitle">社員の登録・削除・並び替え</p>
+      <div class="nav-links">
+        <a href="/index.html">📋 掲示板に戻る</a>
+      </div>
+    </div>
+
+    <!-- メッセージ表示 -->
+    <div class="message" id="message"></div>
+
+    <!-- ローディング -->
+    <div class="loading" id="loading">
+      <div class="loading-spinner"></div>
+      <p>処理中...</p>
+    </div>
+
+    <!-- 管理コンテンツ -->
+    <div class="admin-container">
+      <!-- 社員登録セクション -->
+      <div class="admin-section">
+        <h2>➕ 社員を登録</h2>
+        <form class="employee-form" id="addEmployeeForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="department">所属 *</label>
+              <input 
+                type="text" 
+                id="department" 
+                placeholder="例: 営業部"
+                required
+              >
+            </div>
+            <div class="form-group">
+              <label for="name">名前 *</label>
+              <input 
+                type="text" 
+                id="name" 
+                placeholder="例: 田中 太郎"
+                required
+              >
+            </div>
+          </div>
+          <button type="submit" class="btn btn-success">
+            ➕ 社員を追加
+          </button>
+        </form>
+      </div>
+
+      <!-- 社員一覧・並び替えセクション -->
+      <div class="admin-section">
+        <h2>👥 社員一覧・並び替え</h2>
+        <p style="color: #6c757d; margin-bottom: 15px;">
+          ドラッグ&ドロップで並び替えができます。行をつかんでスライドしてください。
+        </p>
+        <div class="employee-list" id="employeeList">
+          <!-- JavaScriptで動的に生成 -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 削除確認モーダル -->
+  <div class="modal" id="deleteModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>⚠️ 削除の確認</h3>
+      </div>
+      <div class="modal-body">
+        <p>以下の社員を削除してもよろしいですか？</p>
+        <p style="margin-top: 10px; font-weight: bold;" id="deleteEmployeeName"></p>
+        <p style="margin-top: 10px; color: #dc3545; font-size: 14px;">
+          ※ この操作は取り消せません。行き先情報や履歴もすべて削除されます。
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">
+          キャンセル
+        </button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">
+          削除する
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 編集モーダル -->
+  <div class="modal" id="editEmployeeModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>✏️ 社員情報を編集</h3>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="editDepartment">所属 *</label>
+          <input 
+            type="text" 
+            id="editDepartment" 
+            placeholder="例: 営業部"
+            required
+          >
+        </div>
+        <div class="form-group">
+          <label for="editName">名前 *</label>
+          <input 
+            type="text" 
+            id="editName" 
+            placeholder="例: 田中 太郎"
+            required
+          >
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancelEditEmployeeBtn">
+          キャンセル
+        </button>
+        <button type="button" class="btn btn-primary" id="saveEditEmployeeBtn">
+          保存
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>
