@@ -86,6 +86,36 @@ app.post('/api/employees', async (req, res) => {
   }
 });
 
+// 社員並び替え
+app.put('/api/employees/reorder', async (req, res) => {
+  const { orders } = req.body; // [{ id: 1, display_order: 1 }, ...]
+
+  if (!Array.isArray(orders)) {
+    return res.status(400).json({ error: '不正なデータ形式です' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    for (const item of orders) {
+      await client.query(
+        'UPDATE employees SET display_order = $1, updated_at = NOW() WHERE id = $2',
+        [item.display_order, item.id]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ message: '並び替えが完了しました' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  } finally {
+    client.release();
+  }
+});
+
 // 社員更新
 app.put('/api/employees/:id', async (req, res) => {
   const { id } = req.params;
@@ -130,36 +160,6 @@ app.delete('/api/employees/:id', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
-  }
-});
-
-// 社員並び替え
-app.put('/api/employees/reorder', async (req, res) => {
-  const { orders } = req.body; // [{ id: 1, display_order: 1 }, ...]
-
-  if (!Array.isArray(orders)) {
-    return res.status(400).json({ error: '不正なデータ形式です' });
-  }
-
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    for (const item of orders) {
-      await client.query(
-        'UPDATE employees SET display_order = $1, updated_at = NOW() WHERE id = $2',
-        [item.display_order, item.id]
-      );
-    }
-
-    await client.query('COMMIT');
-    res.json({ message: '並び替えが完了しました' });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error(err);
-    res.status(500).json({ error: 'サーバーエラー' });
-  } finally {
-    client.release();
   }
 });
 
