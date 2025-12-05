@@ -143,9 +143,14 @@ function renderEmployeeTable() {
 
 // 日時フォーマット関数を追加
 function formatDateTime(dateString) {
+  console.log('=== formatDateTime デバッグ ===');
+  console.log('元のデータ:', dateString);
+  
   if (!dateString) return '-';
   
   const date = new Date(dateString);
+  console.log('Dateオブジェクト:', date);
+  console.log('表示する時刻:', date.getHours() + ':' + date.getMinutes());
   
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -153,7 +158,10 @@ function formatDateTime(dateString) {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
   
-  return `${year}/${month}/${day} ${hours}:${minutes}`;
+  const result = `${year}/${month}/${day} ${hours}:${minutes}`;
+  console.log('最終結果:', result);
+  
+  return result;
 }
 
 
