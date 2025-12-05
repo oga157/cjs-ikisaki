@@ -180,7 +180,7 @@ app.get('/api/whereabouts', async (req, res) => {
         COALESCE(w.destination, '') as destination,
         COALESCE(w.return_time, '') as return_time,
         COALESCE(w.remarks, '') as remarks,
-        w.updated_at as set_at
+        w.updated_at AT TIME ZONE 'Asia/Tokyo' as set_at
       FROM employees e
       LEFT JOIN whereabouts w ON e.id = w.employee_id
       ORDER BY e.display_order ASC
