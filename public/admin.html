@@ -80,6 +80,35 @@
           <!-- JavaScriptで動的に生成 -->
         </div>
       </div>
+      
+      <!-- 共通履歴管理セクション -->
+      <div class="admin-section">
+        <h2>📝 共通行き先履歴管理</h2>
+        <p style="color: #6c757d; margin-bottom: 15px;">
+          全社員が共通で使える行き先を登録できます（最大20件）
+        </p>
+        
+        <form class="employee-form" id="addCommonHistoryForm">
+          <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+              <label for="commonDestination">行き先</label>
+              <input 
+                type="text" 
+                id="commonDestination" 
+                placeholder="例: 外出、本社、会議室A"
+                required
+              >
+            </div>
+          </div>
+          <button type="submit" class="btn btn-success">
+            ➕ 追加
+          </button>
+        </form>
+        
+        <div class="common-history-list" id="commonHistoryList">
+          <!-- JavaScriptで動的に生成 -->
+        </div>
+      </div>
     </div>
   </div>
 

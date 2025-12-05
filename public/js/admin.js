@@ -26,10 +26,16 @@ const editName = document.getElementById('editName');
 const editAutoRefreshMinutes = document.getElementById('editAutoRefreshMinutes');
 const saveEditEmployeeBtn = document.getElementById('saveEditEmployeeBtn');
 const cancelEditEmployeeBtn = document.getElementById('cancelEditEmployeeBtn');
+const addCommonHistoryForm = document.getElementById('addCommonHistoryForm');
+const commonDestination = document.getElementById('commonDestination');
+const commonHistoryList = document.getElementById('commonHistoryList');
+
+let commonHistories = [];
 
 // 初期化
 document.addEventListener('DOMContentLoaded', () => {
   loadEmployees();
+  loadCommonHistories();  // 追加
   setupEventListeners();
 });
 
@@ -45,6 +51,9 @@ function setupEventListeners() {
   // 編集モーダル
   saveEditEmployeeBtn.addEventListener('click', handleSaveEditEmployee);
   cancelEditEmployeeBtn.addEventListener('click', closeEditEmployeeModal);
+  
+  // 共通履歴フォーム（追加）
+  addCommonHistoryForm.addEventListener('submit', handleAddCommonHistory);
   
   // モーダル外クリックで閉じる
   deleteModal.addEventListener('click', (e) => {
@@ -406,3 +415,116 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
+
+// ========================================
+// 共通履歴管理機能
+// ========================================
+
+// 共通履歴読み込み
+async function loadCommonHistories() {
+  try {
+    const response = await fetch(`${API_BASE}/api/common-history`);
+    if (!response.ok) throw new Error('共通履歴の取得に失敗しました');
+    
+    commonHistories = await response.json();
+    renderCommonHistoryList();
+  } catch (error) {
+    console.error(error);
+    showMessage('共通履歴の読み込みに失敗しました', 'error');
+  }
+}
+
+// 共通履歴リスト描画
+function renderCommonHistoryList() {
+  if (commonHistories.length === 0) {
+    commonHistoryList.innerHTML = '<div style="padding: 20px; text-align: center; color: #6c757d;">共通履歴はまだ登録されていません</div>';
+    return;
+  }
+  
+  commonHistoryList.innerHTML = '';
+  
+  commonHistories.forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = 'common-history-item';
+    
+    const lastUsed = new Date(item.last_used_at);
+    const formattedDate = `${lastUsed.getFullYear()}/${String(lastUsed.getMonth() + 1).padStart(2, '0')}/${String(lastUsed.getDate()).padStart(2, '0')}`;
+    
+    div.innerHTML = `
+      <div class="destination">${index + 1}. ${escapeHtml(item.destination)}</div>
+      <div class="meta">最終使用: ${formattedDate}</div>
+      <div class="actions">
+        <button 
+          class="btn btn-danger btn-sm" 
+          onclick="deleteCommonHistory(${item.id})"
+        >
+          削除
+        </button>
+      </div>
+    `;
+    
+    commonHistoryList.appendChild(div);
+  });
+}
+
+// 共通履歴追加
+async function handleAddCommonHistory(e) {
+  e.preventDefault();
+  
+  const destination = commonDestination.value.trim();
+  
+  if (!destination) {
+    showMessage('行き先を入力してください', 'error');
+    return;
+  }
+  
+  try {
+    showLoading(true);
+    const response = await fetch(`${API_BASE}/api/common-history`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destination })
+    });
+    
+    if (!response.ok) throw new Error('追加に失敗しました');
+    
+    // フォームクリア
+    addCommonHistoryForm.reset();
+    
+    // データ再読み込み
+    await loadCommonHistories();
+    showMessage('共通履歴を追加しました', 'success');
+  } catch (error) {
+    console.error(error);
+    showMessage('エラー: ' + error.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+// 共通履歴削除
+async function deleteCommonHistory(id) {
+  if (!confirm('この共通履歴を削除してもよろしいですか？')) {
+    return;
+  }
+  
+  try {
+    showLoading(true);
+    const response = await fetch(`${API_BASE}/api/common-history/${id}`, {
+      method: 'DELETE'
+    });
+    
+    if (!response.ok) throw new Error('削除に失敗しました');
+    
+    await loadCommonHistories();
+    showMessage('共通履歴を削除しました', 'success');
+  } catch (error) {
+    console.error(error);
+    showMessage('エラー: ' + error.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+// グローバルスコープに関数を公開
+window.deleteCommonHistory = deleteCommonHistory;
