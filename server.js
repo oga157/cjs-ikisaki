@@ -28,32 +28,6 @@ pool.connect((err, client, release) => {
   }
 });
 
-// 共通履歴を更新するヘルパー関数
-async function updateCommonHistory(destination) {
-  try {
-    await pool.query(
-      `INSERT INTO common_destination_history (destination, last_used_at) 
-       VALUES ($1, NOW()) 
-       ON CONFLICT (destination) 
-       DO UPDATE SET last_used_at = NOW()`,
-      [destination.trim()]
-    );
-
-    // 20件を超えた場合、古いものを削除
-    await pool.query(
-      `DELETE FROM common_destination_history 
-       WHERE id NOT IN (
-         SELECT id FROM common_destination_history 
-         ORDER BY last_used_at DESC 
-         LIMIT 20
-       )`
-    );
-  } catch (err) {
-    // エラーは無視（共通履歴の更新失敗は本処理に影響させない）
-    console.log('共通履歴更新エラー（無視）:', err.message);
-  }
-}
-
 // ========================================
 // 社員関連API
 // ========================================
@@ -267,10 +241,6 @@ app.put('/api/whereabouts/bulk', async (req, res) => {
 
     await client.query('COMMIT');
     
-    if (destination && destination.trim() !== '') {
-      updateCommonHistory(destination);
-    }
-    
     res.json({ message: `${employeeIds.length}件の行き先を更新しました` });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -328,10 +298,6 @@ app.put('/api/whereabouts/:employeeId', async (req, res) => {
     }
 
     await client.query('COMMIT');
-    
-    if (destination && destination.trim() !== '') {
-      updateCommonHistory(destination);
-    }
     
     res.json(result.rows[0]);
   } catch (err) {
@@ -438,39 +404,6 @@ app.delete('/api/common-history/:id', async (req, res) => {
     }
 
     res.json({ message: '削除しました' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'サーバーエラー' });
-  }
-});
-
-// 共通履歴を行き先設定時に更新
-app.post('/api/common-history/update-from-whereabouts', async (req, res) => {
-  const { destination } = req.body;
-  
-  if (!destination || destination.trim() === '') {
-    return res.json({ message: 'スキップ' });
-  }
-
-  try {
-    await pool.query(
-      `INSERT INTO common_destination_history (destination, last_used_at) 
-       VALUES ($1, NOW()) 
-       ON CONFLICT (destination) 
-       DO UPDATE SET last_used_at = NOW()`,
-      [destination.trim()]
-    );
-
-    await pool.query(
-      `DELETE FROM common_destination_history 
-       WHERE id NOT IN (
-         SELECT id FROM common_destination_history 
-         ORDER BY last_used_at DESC 
-         LIMIT 20
-       )`
-    );
-
-    res.json({ message: '更新しました' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
