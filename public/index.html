@@ -40,14 +40,6 @@
           >
         </div>
         <div class="form-group">
-          <label for="bulkRemarks">備考</label>
-          <input 
-            type="text" 
-            id="bulkRemarks" 
-            placeholder="例: 携帯連絡可"
-          >
-        </div>
-        <div class="form-group">
           <button type="submit" class="btn btn-primary" id="bulkUpdateBtn" disabled>
             一括更新
           </button>
@@ -79,7 +71,7 @@
             <th class="name-col">名前</th>
             <th class="destination-col">行き先</th>
             <th class="return-col">戻り</th>
-            <th class="remarks-col">備考</th>
+            <th class="set-at-col">設定日時</th>
             <th class="actions-col">操作</th>
           </tr>
         </thead>
@@ -115,10 +107,7 @@
           <label for="editReturn">戻り</label>
           <input type="text" id="editReturn" placeholder="例: 15:00、未定">
         </div>
-        <div class="form-group">
-          <label for="editRemarks">備考</label>
-          <input type="text" id="editRemarks" placeholder="例: 携帯連絡可">
-        </div>
+        <!-- 備考フィールドを削除 -->
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="cancelEditBtn">

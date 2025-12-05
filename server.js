@@ -36,7 +36,7 @@ pool.connect((err, client, release) => {
 app.get('/api/employees', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM employees ORDER BY display_order ASC'
+      'SELECT id, department, name, display_order, auto_refresh_minutes, created_at, updated_at FROM employees ORDER BY display_order ASC'
     );
     res.json(result.rows);
   } catch (err) {
@@ -47,7 +47,7 @@ app.get('/api/employees', async (req, res) => {
 
 // 社員追加
 app.post('/api/employees', async (req, res) => {
-  const { department, name } = req.body;
+  const { department, name, auto_refresh_minutes } = req.body;
   
   if (!department || !name) {
     return res.status(400).json({ error: '所属と名前は必須です' });
@@ -65,8 +65,8 @@ app.post('/api/employees', async (req, res) => {
 
     // 社員追加
     const employeeResult = await client.query(
-      'INSERT INTO employees (department, name, display_order) VALUES ($1, $2, $3) RETURNING *',
-      [department, name, newOrder]
+      'INSERT INTO employees (department, name, display_order, auto_refresh_minutes) VALUES ($1, $2, $3, $4) RETURNING *',
+      [department, name, newOrder, auto_refresh_minutes || 0]
     );
 
     // 行き先情報の初期レコード作成
@@ -119,7 +119,7 @@ app.put('/api/employees/reorder', async (req, res) => {
 // 社員更新
 app.put('/api/employees/:id', async (req, res) => {
   const { id } = req.params;
-  const { department, name } = req.body;
+  const { department, name, auto_refresh_minutes } = req.body;
 
   if (!department || !name) {
     return res.status(400).json({ error: '所属と名前は必須です' });
@@ -127,8 +127,8 @@ app.put('/api/employees/:id', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'UPDATE employees SET department = $1, name = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
-      [department, name, id]
+      'UPDATE employees SET department = $1, name = $2, auto_refresh_minutes = $3, updated_at = NOW() WHERE id = $4 RETURNING *',
+      [department, name, auto_refresh_minutes || 0, id]
     );
 
     if (result.rows.length === 0) {
@@ -176,10 +176,11 @@ app.get('/api/whereabouts', async (req, res) => {
         e.department,
         e.name,
         e.display_order,
+        e.auto_refresh_minutes,
         COALESCE(w.destination, '') as destination,
         COALESCE(w.return_time, '') as return_time,
         COALESCE(w.remarks, '') as remarks,
-        w.updated_at
+        w.updated_at as set_at
       FROM employees e
       LEFT JOIN whereabouts w ON e.id = w.employee_id
       ORDER BY e.display_order ASC

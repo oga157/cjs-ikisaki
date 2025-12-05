@@ -12,6 +12,7 @@ let draggedEmployeeId = null;
 const addEmployeeForm = document.getElementById('addEmployeeForm');
 const department = document.getElementById('department');
 const name = document.getElementById('name');
+const autoRefreshMinutes = document.getElementById('autoRefreshMinutes');
 const employeeList = document.getElementById('employeeList');
 const loading = document.getElementById('loading');
 const message = document.getElementById('message');
@@ -22,6 +23,7 @@ const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
 const editEmployeeModal = document.getElementById('editEmployeeModal');
 const editDepartment = document.getElementById('editDepartment');
 const editName = document.getElementById('editName');
+const editAutoRefreshMinutes = document.getElementById('editAutoRefreshMinutes');
 const saveEditEmployeeBtn = document.getElementById('saveEditEmployeeBtn');
 const cancelEditEmployeeBtn = document.getElementById('cancelEditEmployeeBtn');
 
@@ -87,12 +89,20 @@ function renderEmployeeList() {
     item.dataset.employeeId = emp.id;
     item.dataset.order = emp.display_order;
     
+    // 自動更新時間の表示
+    const autoRefreshText = emp.auto_refresh_minutes > 0 
+      ? `${emp.auto_refresh_minutes}分ごと` 
+      : '更新なし';
+    
     item.innerHTML = `
       <div class="employee-info">
         <span class="drag-handle">☰</span>
         <span class="order">${index + 1}</span>
         <span class="department">${escapeHtml(emp.department)}</span>
         <span class="name">${escapeHtml(emp.name)}</span>
+        <span class="auto-refresh" style="color: #6c757d; font-size: 12px; min-width: 80px;">
+          🔄 ${autoRefreshText}
+        </span>
       </div>
       <div class="employee-actions">
         <button 
@@ -128,9 +138,15 @@ async function handleAddEmployee(e) {
   
   const departmentValue = department.value.trim();
   const nameValue = name.value.trim();
+  const autoRefreshValue = parseInt(autoRefreshMinutes.value) || 0;
   
   if (!departmentValue || !nameValue) {
     showMessage('所属と名前を入力してください', 'error');
+    return;
+  }
+  
+  if (autoRefreshValue < 0 || autoRefreshValue > 60) {
+    showMessage('自動更新時間は0〜60分の範囲で設定してください', 'error');
     return;
   }
   
@@ -141,7 +157,8 @@ async function handleAddEmployee(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         department: departmentValue,
-        name: nameValue
+        name: nameValue,
+        auto_refresh_minutes: autoRefreshValue
       })
     });
     
@@ -210,6 +227,7 @@ function openEditEmployeeModal(employeeId) {
   
   editDepartment.value = employee.department;
   editName.value = employee.name;
+  editAutoRefreshMinutes.value = employee.auto_refresh_minutes || 0;
   editEmployeeModal.classList.add('show');
 }
 
@@ -225,9 +243,15 @@ async function handleSaveEditEmployee() {
   
   const departmentValue = editDepartment.value.trim();
   const nameValue = editName.value.trim();
+  const autoRefreshValue = parseInt(editAutoRefreshMinutes.value) || 0;
   
   if (!departmentValue || !nameValue) {
     showMessage('所属と名前を入力してください', 'error');
+    return;
+  }
+  
+  if (autoRefreshValue < 0 || autoRefreshValue > 60) {
+    showMessage('自動更新時間は0〜60分の範囲で設定してください', 'error');
     return;
   }
   
@@ -238,7 +262,8 @@ async function handleSaveEditEmployee() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         department: departmentValue,
-        name: nameValue
+        name: nameValue,
+        auto_refresh_minutes: autoRefreshValue
       })
     });
     

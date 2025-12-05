@@ -51,6 +51,18 @@
                 required
               >
             </div>
+            <div class="form-group">
+              <label for="autoRefreshMinutes">自動更新時間（分）</label>
+              <input 
+                type="number" 
+                id="autoRefreshMinutes" 
+                placeholder="0"
+                min="0"
+                max="60"
+                value="0"
+              >
+              <small style="color: #6c757d; font-size: 14px;">0 = 自動更新なし</small>
+            </div>
           </div>
           <button type="submit" class="btn btn-success">
             ➕ 社員を追加
@@ -119,6 +131,18 @@
             placeholder="例: 田中 太郎"
             required
           >
+        </div>
+        <div class="form-group">
+          <label for="editAutoRefreshMinutes">自動更新時間（分）</label>
+          <input 
+            type="number" 
+            id="editAutoRefreshMinutes" 
+            placeholder="0"
+            min="0"
+            max="60"
+            value="0"
+          >
+          <small style="color: #6c757d; font-size: 14px;">0 = 自動更新なし、1〜60分で設定</small>
         </div>
       </div>
       <div class="modal-footer">

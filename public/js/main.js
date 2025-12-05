@@ -95,6 +95,9 @@ function renderEmployeeTable() {
     const isSelected = selectedEmployeeIds.has(emp.id);
     const isPresent = !emp.destination || emp.destination.trim() === '';
     
+    // 設定日時のフォーマット
+    const setAt = emp.set_at ? formatDateTime(emp.set_at) : '-';
+    
     row.innerHTML = `
       <td class="checkbox-col">
         <input 
@@ -113,7 +116,7 @@ function renderEmployeeTable() {
         }
       </td>
       <td>${escapeHtml(emp.return_time)}</td>
-      <td>${escapeHtml(emp.remarks)}</td>
+      <td>${setAt}</td>
       <td class="actions-col">
         <button 
           class="btn btn-primary btn-sm" 
@@ -133,7 +136,31 @@ function renderEmployeeTable() {
   
   updateSelectAllState();
   updateBulkUpdateButton();
+  
+  // 自動更新の設定
+  setupAutoRefresh();
 }
+
+// 日時フォーマット関数を追加
+function formatDateTime(dateString) {
+  if (!dateString) return '-';
+  
+  const date = new Date(dateString);
+  
+  // UTCからJST（+9時間）に変換
+  const jstOffset = 9 * 60; // 日本は UTC+9
+  const utcTime = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const jstTime = new Date(utcTime + (jstOffset * 60000));
+  
+  const year = jstTime.getFullYear();
+  const month = String(jstTime.getMonth() + 1).padStart(2, '0');
+  const day = String(jstTime.getDate()).padStart(2, '0');
+  const hours = String(jstTime.getHours()).padStart(2, '0');
+  const minutes = String(jstTime.getMinutes()).padStart(2, '0');
+  
+  return `${year}/${month}/${day} ${hours}:${minutes}`;
+}
+
 
 // チェックボックス変更ハンドラ
 function handleCheckboxChange(e) {
@@ -204,7 +231,7 @@ async function handleBulkUpdate(e) {
   
   const destination = bulkDestination.value.trim();
   const return_time = document.getElementById('bulkReturn').value.trim();
-  const remarks = document.getElementById('bulkRemarks').value.trim();
+  const remarks = '';
   
   try {
     showLoading(true);
@@ -246,7 +273,6 @@ function openEditModal(employeeId) {
   editEmployeeName.value = `${employee.department} - ${employee.name}`;
   editDestination.value = employee.destination || '';
   editReturn.value = employee.return_time || '';
-  editRemarks.value = employee.remarks || '';
   
   editModal.classList.add('show');
 }
@@ -264,7 +290,7 @@ async function handleSaveEdit() {
   
   const destination = editDestination.value.trim();
   const return_time = editReturn.value.trim();
-  const remarks = editRemarks.value.trim();
+  const remarks = '';  // 備考は常に空文字
   
   try {
     showLoading(true);
@@ -368,3 +394,36 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
+
+// ========================================
+// 自動更新機能
+// ========================================
+
+let autoRefreshTimers = new Map(); // 社員ごとのタイマーを管理
+
+function setupAutoRefresh() {
+  // 既存のタイマーをすべてクリア
+  autoRefreshTimers.forEach(timer => clearTimeout(timer));
+  autoRefreshTimers.clear();
+  
+  // 各社員の自動更新設定をチェック
+  employees.forEach(emp => {
+    if (emp.auto_refresh_minutes && emp.auto_refresh_minutes > 0) {
+      const intervalMs = emp.auto_refresh_minutes * 60 * 1000;
+      
+      const timerId = setInterval(() => {
+        console.log(`自動更新: ${emp.name} (${emp.auto_refresh_minutes}分ごと)`);
+        loadEmployees();
+      }, intervalMs);
+      
+      autoRefreshTimers.set(emp.id, timerId);
+    }
+  });
+  
+  console.log(`自動更新設定: ${autoRefreshTimers.size}名の社員`);
+}
+
+// ページを離れる時にタイマーをクリア
+window.addEventListener('beforeunload', () => {
+  autoRefreshTimers.forEach(timer => clearInterval(timer));
+});
