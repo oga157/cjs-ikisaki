@@ -147,16 +147,11 @@ function formatDateTime(dateString) {
   
   const date = new Date(dateString);
   
-  // UTCからJST（+9時間）に変換
-  const jstOffset = 9 * 60; // 日本は UTC+9
-  const utcTime = date.getTime() + (date.getTimezoneOffset() * 60000);
-  const jstTime = new Date(utcTime + (jstOffset * 60000));
-  
-  const year = jstTime.getFullYear();
-  const month = String(jstTime.getMonth() + 1).padStart(2, '0');
-  const day = String(jstTime.getDate()).padStart(2, '0');
-  const hours = String(jstTime.getHours()).padStart(2, '0');
-  const minutes = String(jstTime.getMinutes()).padStart(2, '0');
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
   
   return `${year}/${month}/${day} ${hours}:${minutes}`;
 }
