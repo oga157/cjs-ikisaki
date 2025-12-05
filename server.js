@@ -341,7 +341,7 @@ app.get('/api/history/:employeeId', async (req, res) => {
 app.get('/api/common-history', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT destination, last_used_at 
+      `SELECT id, destination, last_used_at 
        FROM common_destination_history 
        ORDER BY last_used_at DESC 
        LIMIT 20`

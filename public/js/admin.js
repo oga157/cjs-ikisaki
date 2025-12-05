@@ -444,6 +444,7 @@ function renderCommonHistoryList() {
   commonHistoryList.innerHTML = '';
   
   commonHistories.forEach((item, index) => {
+    
     const div = document.createElement('div');
     div.className = 'common-history-item';
     
