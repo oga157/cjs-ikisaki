@@ -11,7 +11,6 @@
     <!-- ヘッダー -->
     <div class="header">
       <h1>⚙️ 管理画面</h1>
-      <p class="subtitle">社員の登録・削除・並び替え</p>
       <div class="nav-links">
         <a href="/index.html">📋 掲示板に戻る</a>
       </div>
@@ -51,18 +50,6 @@
                 required
               >
             </div>
-            <div class="form-group">
-              <label for="autoRefreshMinutes">自動更新時間（分）</label>
-              <input 
-                type="number" 
-                id="autoRefreshMinutes" 
-                placeholder="0"
-                min="0"
-                max="60"
-                value="0"
-              >
-              <small style="color: #6c757d; font-size: 14px;">0 = 自動更新なし</small>
-            </div>
           </div>
           <button type="submit" class="btn btn-success">
             ➕ 社員を追加
@@ -81,6 +68,35 @@
         </div>
       </div>
       
+      <!-- 自動更新設定セクション -->
+      <div class="admin-section">
+        <h2>🔄 自動更新設定</h2>
+        <p style="color: #6c757d; margin-bottom: 15px;">
+          メイン画面の自動更新間隔を設定します（全社員共通）
+        </p>
+        
+        <form class="employee-form" id="autoRefreshForm">
+          <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+              <label for="autoRefreshMinutes">自動更新時間（分）</label>
+              <input 
+                type="number" 
+                id="autoRefreshMinutes" 
+                placeholder="0"
+                min="0"
+                max="60"
+                value="0"
+                style="max-width: 200px;"
+              >
+              <small style="color: #6c757d; font-size: 12px; display: block; margin-top: 5px;">0 = 自動更新なし、1〜60分で設定</small>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" style="margin-top: 10px;">
+            💾 保存
+          </button>
+        </form>
+      </div>
+
       <!-- 共通履歴管理セクション -->
       <div class="admin-section">
         <h2>📝 共通行き先履歴管理</h2>
@@ -160,18 +176,6 @@
             placeholder="例: 田中 太郎"
             required
           >
-        </div>
-        <div class="form-group">
-          <label for="editAutoRefreshMinutes">自動更新時間（分）</label>
-          <input 
-            type="number" 
-            id="editAutoRefreshMinutes" 
-            placeholder="0"
-            min="0"
-            max="60"
-            value="0"
-          >
-          <small style="color: #6c757d; font-size: 14px;">0 = 自動更新なし、1〜60分で設定</small>
         </div>
       </div>
       <div class="modal-footer">

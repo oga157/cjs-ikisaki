@@ -11,7 +11,6 @@
     <!-- ヘッダー -->
     <div class="header">
       <h1>📋 行き先掲示板</h1>
-      <p class="subtitle">社員の現在地をリアルタイムで確認</p>
       <div class="nav-links">
         <a href="/admin.html">⚙️ 管理画面</a>
       </div>
@@ -19,9 +18,9 @@
 
     <!-- 一括変更エリア -->
     <div class="bulk-update-area">
-      <h2>📝 選択した社員の行き先を一括変更</h2>
+      <h2>📝 選択した社員の行き先を変更</h2>
       <form class="bulk-form" id="bulkForm">
-        <div class="form-group history-group">
+        <div class="form-group history-group" style="flex: 2;">
           <label for="bulkDestination">行き先</label>
           <input 
             type="text" 
@@ -31,7 +30,7 @@
           >
           <div class="history-dropdown" id="historyDropdown"></div>
         </div>
-        <div class="form-group">
+        <div class="form-group" style="flex: 1;">
           <label for="bulkReturn">戻り</label>
           <input 
             type="text" 
@@ -39,12 +38,9 @@
             placeholder="例: 15:00、未定"
           >
         </div>
-        <div class="form-group">
+        <div class="form-group" style="flex: 0 0 auto;">
           <button type="submit" class="btn btn-primary" id="bulkUpdateBtn" disabled>
-            一括更新
-          </button>
-          <button type="button" class="btn btn-secondary" id="clearSelectionBtn">
-            選択解除
+            更新
           </button>
         </div>
       </form>
@@ -72,51 +68,12 @@
             <th class="destination-col">行き先</th>
             <th class="return-col">戻り</th>
             <th class="set-at-col">設定日時</th>
-            <th class="actions-col">操作</th>
           </tr>
         </thead>
         <tbody id="employeeTableBody">
           <!-- JavaScriptで動的に生成 -->
         </tbody>
       </table>
-    </div>
-  </div>
-
-  <!-- 編集モーダル -->
-  <div class="modal" id="editModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>行き先を編集</h3>
-      </div>
-      <div class="modal-body">
-        <div class="form-group">
-          <label>社員名</label>
-          <input type="text" id="editEmployeeName" disabled>
-        </div>
-        <div class="form-group history-group">
-          <label for="editDestination">行き先</label>
-          <input 
-            type="text" 
-            id="editDestination" 
-            placeholder="空白の場合は「在席」になります"
-            autocomplete="off"
-          >
-          <div class="history-dropdown" id="editHistoryDropdown"></div>
-        </div>
-        <div class="form-group">
-          <label for="editReturn">戻り</label>
-          <input type="text" id="editReturn" placeholder="例: 15:00、未定">
-        </div>
-        <!-- 備考フィールドを削除 -->
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="cancelEditBtn">
-          キャンセル
-        </button>
-        <button type="button" class="btn btn-primary" id="saveEditBtn">
-          保存
-        </button>
-      </div>
     </div>
   </div>
 

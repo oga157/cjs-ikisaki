@@ -4,29 +4,22 @@ const API_BASE = window.location.origin;
 // グローバル変数
 let employees = [];
 let selectedEmployeeIds = new Set();
+let appSettings = { auto_refresh_minutes: 0 };
 let currentEditingEmployeeId = null;
 
 // DOM要素
 const employeeTableBody = document.getElementById('employeeTableBody');
 const selectAllCheckbox = document.getElementById('selectAll');
 const bulkUpdateBtn = document.getElementById('bulkUpdateBtn');
-const clearSelectionBtn = document.getElementById('clearSelectionBtn');
 const bulkForm = document.getElementById('bulkForm');
 const bulkDestination = document.getElementById('bulkDestination');
 const historyDropdown = document.getElementById('historyDropdown');
 const loading = document.getElementById('loading');
 const message = document.getElementById('message');
-const editModal = document.getElementById('editModal');
-const editEmployeeName = document.getElementById('editEmployeeName');
-const editDestination = document.getElementById('editDestination');
-const editReturn = document.getElementById('editReturn');
-const editRemarks = document.getElementById('editRemarks');
-const editHistoryDropdown = document.getElementById('editHistoryDropdown');
-const saveEditBtn = document.getElementById('saveEditBtn');
-const cancelEditBtn = document.getElementById('cancelEditBtn');
 
 // 初期化
 document.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
   loadEmployees();
   setupEventListeners();
 });
@@ -39,33 +32,28 @@ function setupEventListeners() {
   // 一括更新フォーム
   bulkForm.addEventListener('submit', handleBulkUpdate);
   
-  // 選択解除ボタン
-  clearSelectionBtn.addEventListener('click', clearAllSelections);
-  
   // 行き先入力フォーカス時に履歴を表示
   bulkDestination.addEventListener('focus', () => showHistoryForBulk());
   bulkDestination.addEventListener('input', () => showHistoryForBulk());
-  
-  // 編集モーダル
-  editDestination.addEventListener('focus', () => showHistoryForEdit());
-  editDestination.addEventListener('input', () => showHistoryForEdit());
-  saveEditBtn.addEventListener('click', handleSaveEdit);
-  cancelEditBtn.addEventListener('click', closeEditModal);
-  
-  // モーダル外クリックで閉じる
-  editModal.addEventListener('click', (e) => {
-    if (e.target === editModal) {
-      closeEditModal();
-    }
-  });
   
   // 履歴ドロップダウン外クリックで閉じる
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.history-group')) {
       historyDropdown.classList.remove('show');
-      editHistoryDropdown.classList.remove('show');
     }
   });
+}
+
+async function loadSettings() {
+  try {
+    const response = await fetch(`${API_BASE}/api/settings`);
+    if (response.ok) {
+      appSettings = await response.json();
+      console.log('設定読み込み:', appSettings);
+    }
+  } catch (error) {
+    console.error('設定の読み込みエラー:', error);
+  }
 }
 
 // 社員データ読み込み
@@ -107,24 +95,16 @@ function renderEmployeeTable() {
           ${isSelected ? 'checked' : ''}
         >
       </td>
-      <td>${escapeHtml(emp.department)}</td>
-      <td>${escapeHtml(emp.name)}</td>
-      <td>
+      <td class="department-col">${escapeHtml(emp.department)}</td>
+      <td class="name-col">${escapeHtml(emp.name)}</td>
+      <td class="destination-col">
         ${isPresent 
           ? '<span class="status-badge status-present">在席</span>' 
           : escapeHtml(emp.destination)
         }
       </td>
-      <td>${escapeHtml(emp.return_time)}</td>
-      <td>${setAt}</td>
-      <td class="actions-col">
-        <button 
-          class="btn btn-primary btn-sm" 
-          onclick="openEditModal(${emp.id})"
-        >
-          編集
-        </button>
-      </td>
+      <td class="return-col">${escapeHtml(emp.return_time)}</td>
+      <td class="set-at-col">${setAt}</td>
     `;
     
     // チェックボックスイベント
@@ -177,6 +157,7 @@ function handleCheckboxChange(e) {
   
   updateSelectAllState();
   updateBulkUpdateButton();
+  updateFormWithSelectedEmployee();
 }
 
 // 全選択ハンドラ
@@ -196,6 +177,7 @@ function handleSelectAll(e) {
   }
   
   updateBulkUpdateButton();
+  updateFormWithSelectedEmployee();
 }
 
 // 全選択チェックボックスの状態更新
@@ -221,6 +203,25 @@ function clearAllSelections() {
   selectAllCheckbox.checked = false;
   selectAllCheckbox.indeterminate = false;
   updateBulkUpdateButton();
+}
+
+// 選択された社員の情報をフォームにコピー
+function updateFormWithSelectedEmployee() {
+  if (selectedEmployeeIds.size === 0) {
+    // 未選択の場合はクリア
+    bulkDestination.value = '';
+    document.getElementById('bulkReturn').value = '';
+    return;
+  }
+  
+  // 最初に選択された社員の情報を取得
+  const firstSelectedId = Array.from(selectedEmployeeIds)[0];
+  const employee = employees.find(e => e.id === firstSelectedId);
+  
+  if (employee) {
+    bulkDestination.value = employee.destination || '';
+    document.getElementById('bulkReturn').value = employee.return_time || '';
+  }
 }
 
 // 一括更新処理
@@ -251,63 +252,10 @@ async function handleBulkUpdate(e) {
     
     if (!response.ok) throw new Error('更新に失敗しました');
     
-    // フォームクリア
-    bulkForm.reset();
-    clearAllSelections();
-    
+    // フォームクリアせず、選択も維持
     // データ再読み込み
     await loadEmployees();
-    showMessage('一括更新が完了しました', 'success');
-  } catch (error) {
-    console.error(error);
-    showMessage('エラー: ' + error.message, 'error');
-  } finally {
-    showLoading(false);
-  }
-}
-
-// 編集モーダルを開く
-function openEditModal(employeeId) {
-  currentEditingEmployeeId = employeeId;
-  const employee = employees.find(e => e.id === employeeId);
-  
-  if (!employee) return;
-  
-  editEmployeeName.value = `${employee.department} - ${employee.name}`;
-  editDestination.value = employee.destination || '';
-  editReturn.value = employee.return_time || '';
-  
-  editModal.classList.add('show');
-}
-
-// 編集モーダルを閉じる
-function closeEditModal() {
-  editModal.classList.remove('show');
-  currentEditingEmployeeId = null;
-  editHistoryDropdown.classList.remove('show');
-}
-
-// 編集保存
-async function handleSaveEdit() {
-  if (!currentEditingEmployeeId) return;
-  
-  const destination = editDestination.value.trim();
-  const return_time = editReturn.value.trim();
-  const remarks = '';  // 備考は常に空文字
-  
-  try {
-    showLoading(true);
-    const response = await fetch(`${API_BASE}/api/whereabouts/${currentEditingEmployeeId}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ destination, return_time, remarks })
-    });
-    
-    if (!response.ok) throw new Error('更新に失敗しました');
-    
-    closeEditModal();
-    await loadEmployees();
-    showMessage('行き先を更新しました', 'success');
+    showMessage('更新が完了しました', 'success');
   } catch (error) {
     console.error(error);
     showMessage('エラー: ' + error.message, 'error');
@@ -327,12 +275,6 @@ async function showHistoryForBulk() {
   
   const firstEmployeeId = Array.from(selectedEmployeeIds)[0];
   await showHistoryWithCommon(firstEmployeeId, historyDropdown, bulkDestination);
-}
-
-// 編集用の履歴表示
-async function showHistoryForEdit() {
-  if (!currentEditingEmployeeId) return;
-  await showHistoryWithCommon(currentEditingEmployeeId, editHistoryDropdown, editDestination);
 }
 
 // 履歴表示共通処理
@@ -402,33 +344,38 @@ function escapeHtml(text) {
 // 自動更新機能
 // ========================================
 
-let autoRefreshTimers = new Map(); // 社員ごとのタイマーを管理
+let autoRefreshTimer = null;
 
 function setupAutoRefresh() {
-  // 既存のタイマーをすべてクリア
-  autoRefreshTimers.forEach(timer => clearTimeout(timer));
-  autoRefreshTimers.clear();
+  // 既存のタイマーをクリア
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+    autoRefreshTimer = null;
+  }
   
-  // 各社員の自動更新設定をチェック
-  employees.forEach(emp => {
-    if (emp.auto_refresh_minutes && emp.auto_refresh_minutes > 0) {
-      const intervalMs = emp.auto_refresh_minutes * 60 * 1000;
-      
-      const timerId = setInterval(() => {
-        console.log(`自動更新: ${emp.name} (${emp.auto_refresh_minutes}分ごと)`);
-        loadEmployees();
-      }, intervalMs);
-      
-      autoRefreshTimers.set(emp.id, timerId);
-    }
-  });
+  // 全体設定から自動更新時間を取得
+  const minutes = appSettings.auto_refresh_minutes;
   
-  console.log(`自動更新設定: ${autoRefreshTimers.size}名の社員`);
+  if (!minutes || minutes <= 0) {
+    console.log('自動更新: 無効');
+    return;
+  }
+  
+  const intervalMs = minutes * 60 * 1000;
+  
+  autoRefreshTimer = setInterval(() => {
+    console.log(`自動更新実行: ${minutes}分ごと`);
+    loadEmployees();
+  }, intervalMs);
+  
+  console.log(`自動更新設定: ${minutes}分ごと`);
 }
 
 // ページを離れる時にタイマーをクリア
 window.addEventListener('beforeunload', () => {
-  autoRefreshTimers.forEach(timer => clearInterval(timer));
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer);
+  }
 });
 
 // ========================================

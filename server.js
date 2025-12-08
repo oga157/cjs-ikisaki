@@ -36,7 +36,7 @@ pool.connect((err, client, release) => {
 app.get('/api/employees', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT id, department, name, display_order, auto_refresh_minutes, created_at, updated_at FROM employees ORDER BY display_order ASC'
+      'SELECT id, department, name, display_order, created_at, updated_at FROM employees ORDER BY display_order ASC'
     );
     res.json(result.rows);
   } catch (err) {
@@ -47,7 +47,7 @@ app.get('/api/employees', async (req, res) => {
 
 // 社員追加
 app.post('/api/employees', async (req, res) => {
-  const { department, name, auto_refresh_minutes } = req.body;
+  const { department, name } = req.body;
   
   if (!department || !name) {
     return res.status(400).json({ error: '所属と名前は必須です' });
@@ -65,8 +65,8 @@ app.post('/api/employees', async (req, res) => {
 
     // 社員追加
     const employeeResult = await client.query(
-      'INSERT INTO employees (department, name, display_order, auto_refresh_minutes) VALUES ($1, $2, $3, $4) RETURNING *',
-      [department, name, newOrder, auto_refresh_minutes || 0]
+      'INSERT INTO employees (department, name, display_order) VALUES ($1, $2, $3) RETURNING *',
+      [department, name, newOrder || 0]
     );
 
     // 行き先情報の初期レコード作成
@@ -119,7 +119,7 @@ app.put('/api/employees/reorder', async (req, res) => {
 // 社員更新
 app.put('/api/employees/:id', async (req, res) => {
   const { id } = req.params;
-  const { department, name, auto_refresh_minutes } = req.body;
+  const { department, name } = req.body;
 
   if (!department || !name) {
     return res.status(400).json({ error: '所属と名前は必須です' });
@@ -127,8 +127,8 @@ app.put('/api/employees/:id', async (req, res) => {
 
   try {
     const result = await pool.query(
-      'UPDATE employees SET department = $1, name = $2, auto_refresh_minutes = $3, updated_at = NOW() WHERE id = $4 RETURNING *',
-      [department, name, auto_refresh_minutes || 0, id]
+      'UPDATE employees SET department = $1, name = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+      [department, name || 0, id]
     );
 
     if (result.rows.length === 0) {
@@ -176,7 +176,6 @@ app.get('/api/whereabouts', async (req, res) => {
         e.department,
         e.name,
         e.display_order,
-        e.auto_refresh_minutes,
         COALESCE(w.destination, '') as destination,
         COALESCE(w.return_time, '') as return_time,
         COALESCE(w.remarks, '') as remarks,
@@ -327,6 +326,54 @@ app.get('/api/history/:employeeId', async (req, res) => {
       [employeeId]
     );
     res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ========================================
+// 全体設定関連API
+// ========================================
+
+// 全体設定取得
+app.get('/api/settings', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT auto_refresh_minutes FROM app_settings WHERE id = 1'
+    );
+    
+    if (result.rows.length === 0) {
+      // 設定がない場合は初期値を返す
+      res.json({ auto_refresh_minutes: 0 });
+    } else {
+      res.json(result.rows[0]);
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 全体設定更新
+app.put('/api/settings', async (req, res) => {
+  const { auto_refresh_minutes } = req.body;
+  
+  if (auto_refresh_minutes === undefined || auto_refresh_minutes < 0) {
+    return res.status(400).json({ error: '自動更新時間は0以上で設定してください' });
+  }
+  
+  try {
+    const result = await pool.query(
+      `INSERT INTO app_settings (id, auto_refresh_minutes, updated_at) 
+       VALUES (1, $1, NOW())
+       ON CONFLICT (id) 
+       DO UPDATE SET auto_refresh_minutes = $1, updated_at = NOW()
+       RETURNING *`,
+      [auto_refresh_minutes]
+    );
+    
+    res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

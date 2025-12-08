@@ -25,18 +25,18 @@ body {
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 30px;
+  padding: 15px 30px;
   text-align: center;
   position: relative;
 }
 
 .header h1 {
-  font-size: 32px;
-  margin-bottom: 10px;
+  font-size: 24px;
+  margin-bottom: 5px;
 }
 
 .header .subtitle {
-  font-size: 14px;
+  font-size: 12px;
   opacity: 0.9;
 }
 
@@ -64,20 +64,26 @@ body {
 .bulk-update-area {
   background: #f8f9fa;
   border-bottom: 2px solid #dee2e6;
-  padding: 20px 30px;
+  padding: 12px 20px;
 }
 
 .bulk-update-area h2 {
-  font-size: 18px;
-  margin-bottom: 15px;
+  font-size: 15px;
+  margin-bottom: 8px;
   color: #495057;
 }
 
 .bulk-form {
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: flex-end;
+}
+
+@media (max-width: 1024px) {
+  .bulk-form {
+    flex-wrap: wrap;
+  }
 }
 
 .form-group {
@@ -85,21 +91,34 @@ body {
   min-width: 150px;
 }
 
+.form-group[style*="flex: 2"] {
+  flex: 2 !important;
+}
+
+.form-group[style*="flex: 1"] {
+  flex: 1 !important;
+}
+
+.form-group[style*="flex: 0"] {
+  flex: 0 0 auto !important;
+  min-width: auto;
+}
+
 .form-group label {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   color: #6c757d;
-  margin-bottom: 5px;
+  margin-bottom: 3px;
   font-weight: 500;
 }
 
 .form-group input,
 .form-group select {
   width: 100%;
-  padding: 10px;
+  padding: 6px 8px;
   border: 1px solid #ced4da;
-  border-radius: 5px;
-  font-size: 14px;
+  border-radius: 4px;
+  font-size: 13px;
   transition: border-color 0.3s;
 }
 
@@ -150,10 +169,10 @@ body {
 }
 
 .btn {
-  padding: 8px 16px;
+  padding: 6px 12px;
   border: none;
-  border-radius: 5px;
-  font-size: 14px;
+  border-radius: 4px;
+  font-size: 12px;
   cursor: pointer;
   transition: all 0.3s;
   font-weight: 500;
@@ -205,21 +224,27 @@ body {
 
 /* テーブル */
 .table-container {
-  padding: 20px 30px;
+  padding: 10px 30px;
   overflow-x: auto;
-  max-height: calc(100vh - 280px);
+  max-height: calc(100vh - 180px);
   overflow-y: auto;
+  position: relative;
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  table-layout: fixed;
 }
 
 thead {
   background: #f8f9fa;
   border-bottom: 2px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 th {
@@ -227,11 +252,12 @@ th {
   text-align: left;
   font-weight: 600;
   color: #495057;
-  font-size: 14px;
+  font-size: 12px;
   position: sticky;
   top: 0;
   background: #f8f9fa;
   z-index: 10;
+  border-bottom: 2px solid #dee2e6;
 }
 
 th.checkbox-col {
@@ -240,11 +266,11 @@ th.checkbox-col {
 }
 
 th.department-col {
-  width: 110px;
+  width: 70px;
 }
 
 th.name-col {
-  width: 120px;
+  width: 80px;
 }
 
 th.destination-col {
@@ -252,25 +278,21 @@ th.destination-col {
 }
 
 th.return-col {
-  width: 120px;
+  width: 100px;
 }
 
 th.set-at-col {
-  width: 140px;
+  width: 120px;
 }
 
 th.remarks-col {
   width: 250px;
 }
 
-th.actions-col {
-  width: 100px;
-  text-align: center;
-}
-
 tbody tr {
   border-bottom: 1px solid #e9ecef;
   transition: background 0.2s;
+  transition: background 1.2s;
 }
 
 tbody tr:hover {
@@ -280,15 +302,12 @@ tbody tr:hover {
 td {
   padding: 2px 6px;
   vertical-align: middle;
-  font-size: 14px;
+  font-size: 12px;
 }
 
 td.checkbox-col {
   text-align: center;
-}
-
-td.actions-col {
-  text-align: center;
+  width: 50px;
 }
 
 .status-badge {
@@ -492,10 +511,28 @@ input[type="checkbox"] {
 
 /* メッセージ */
 .message {
-  padding: 15px;
-  border-radius: 5px;
-  margin-bottom: 20px;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 15px 20px;
+  border-radius: 8px;
   display: none;
+  z-index: 9999;
+  min-width: 300px;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .message.show {
@@ -506,35 +543,24 @@ input[type="checkbox"] {
   background: #d4edda;
   color: #155724;
   border: 1px solid #c3e6cb;
+  border-left: 4px solid #28a745;
 }
 
 .message.error {
   background: #f8d7da;
   color: #721c24;
   border: 1px solid #f5c6cb;
+  border-left: 4px solid #dc3545;
 }
 
-/* レスポンシブ */
+/* レスポンシブ対応 */
 @media (max-width: 768px) {
-  .bulk-form {
-    flex-direction: column;
-  }
-  
-  .form-group {
-    min-width: 100%;
-  }
-  
-  .header .nav-links {
-    position: static;
-    margin-top: 15px;
-  }
-  
-  table {
-    font-size: 12px;
-  }
-  
-  th, td {
-    padding: 10px 5px;
+  .message {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    min-width: auto;
+    max-width: none;
   }
 }
 
