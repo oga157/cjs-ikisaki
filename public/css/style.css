@@ -237,11 +237,12 @@ table {
   border-spacing: 0;
   font-size: 13px;
   table-layout: fixed;
+  border: 1px solid #dee2e6;
 }
 
 thead {
-  background: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
+  background: #e9ecef;
+  border-bottom: 2px solid #adb5bd;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -252,12 +253,17 @@ th {
   text-align: left;
   font-weight: 600;
   color: #495057;
-  font-size: 12px;
+  font-size: 14px;
   position: sticky;
   top: 0;
-  background: #f8f9fa;
+  background: #e9ecef;
   z-index: 10;
-  border-bottom: 2px solid #dee2e6;
+  border-bottom: 2px solid #adb5bd;
+  border-right: 1px solid #dee2e6;
+}
+
+th:last-child {
+  border-right: none;
 }
 
 th.checkbox-col {
@@ -271,6 +277,8 @@ th.department-col {
 
 th.name-col {
   width: 80px;
+  font-weight: 600;
+  color: #212529;
 }
 
 th.destination-col {
@@ -290,42 +298,55 @@ th.remarks-col {
 }
 
 tbody tr {
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #dee2e6;
   transition: background 0.2s;
-  transition: background 1.2s;
+  transition: background 1.3s;
+  background: white;
+}
+
+tbody tr:nth-child(even) {
+  background: #f8f9fa;
 }
 
 tbody tr:hover {
-  background: #f8f9fa;
+  background: #e7f3ff !important;
 }
 
 td {
   padding: 2px 6px;
   vertical-align: middle;
-  font-size: 12px;
+  font-size: 14px;
+  border-right: 1px solid #e9ecef;
+}
+
+td:last-child {
+  border-right: none;
 }
 
 td.checkbox-col {
   text-align: center;
+  background: #f1f3f5;
   width: 50px;
 }
 
 .status-badge {
   display: inline-block;
-  padding: 5px 12px;
-  border-radius: 20px;
+  padding: 3px 10px;
+  border-radius: 12px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .status-present {
   background: #d4edda;
   color: #155724;
+  border: 1px solid #c3e6cb;
 }
 
 .status-away {
   background: #fff3cd;
   color: #856404;
+  border: 1px solid #ffeaa7;
 }
 
 input[type="checkbox"] {
