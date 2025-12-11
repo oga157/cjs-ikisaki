@@ -4,7 +4,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>管理画面 - 行き先掲示板</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- ちらつき防止用スタイル -->
+  <style>
+    /* 初期状態: ログイン画面を表示、メインコンテンツを非表示 */
+    #loginModal {
+      display: flex !important;
+    }
+    
+    #mainContent {
+      display: none !important;
+    }
+    
+    /* ログイン済みの場合の表示切り替え */
+    html.authenticated #loginModal {
+      display: none !important;
+    }
+    
+    html.authenticated #mainContent {
+      display: block !important;
+    }
+  </style>
+  
+  <!-- 即座に認証チェック -->
+  <script>
+    (function() {
+      const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+      
+      if (isLoggedIn === 'true') {
+        document.documentElement.classList.add('authenticated');
+      }
+    })();
+  </script>
 </head>
 <body>
   <!-- ログインモーダル -->
@@ -31,7 +63,7 @@
       <div id="loginLockMessage" class="login-lock-message"></div>
     </div>
   </div>
-  <div class="container" id="mainContent" style="display: none;">
+  <div class="container" id="mainContent">
     <!-- ヘッダー -->
     <div class="header">
       <h1>⚙️ 管理画面</h1>

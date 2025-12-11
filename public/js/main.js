@@ -62,6 +62,7 @@ function checkAuth() {
 
 // ログインモーダル表示
 function showLoginModal() {
+  document.documentElement.classList.remove('authenticated');
   loginModal.style.display = 'flex';
   mainContent.style.display = 'none';
   loginCode.focus();
@@ -69,6 +70,7 @@ function showLoginModal() {
 
 // メインコンテンツ表示
 function showMainContent() {
+  document.documentElement.classList.add('authenticated');
   loginModal.style.display = 'none';
   mainContent.style.display = 'block';
   initializeApp();
