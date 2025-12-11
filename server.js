@@ -319,7 +319,7 @@ app.get('/api/history/:employeeId', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT destination, last_used_at 
+      `SELECT id, destination, last_used_at 
        FROM destination_history 
        WHERE employee_id = $1 
        ORDER BY last_used_at DESC 
@@ -327,6 +327,27 @@ app.get('/api/history/:employeeId', async (req, res) => {
       [employeeId]
     );
     res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// 個人履歴削除
+app.delete('/api/history/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const result = await pool.query(
+      'DELETE FROM destination_history WHERE id = $1 RETURNING *',
+      [id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: '履歴が見つかりません' });
+    }
+    
+    res.json({ success: true, message: '履歴を削除しました' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });

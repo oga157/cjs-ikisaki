@@ -168,6 +168,12 @@ function setupEventListeners() {
   // 行き先入力欄でキー操作
   bulkDestination.addEventListener('keydown', handleHistoryKeydown);
   
+  // 戻り入力欄にフォーカス時に履歴を閉じる
+  document.getElementById('bulkReturn').addEventListener('focus', () => {
+    historyDropdown.classList.remove('show');
+    historySelectedIndex = -1;
+  });
+  
   // 履歴ドロップダウン外クリックで閉じる
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.history-group')) {
@@ -204,6 +210,18 @@ function handleHistoryKeydown(e) {
       e.preventDefault();
       // 上へ移動
       historySelectedIndex = Math.max(historySelectedIndex - 1, 0);
+      updateHistorySelection(historyItems);
+      break;
+      
+    case 'Tab':
+      e.preventDefault();
+      if (e.shiftKey) {
+        // Shift+Tab: 上へ移動
+        historySelectedIndex = Math.max(historySelectedIndex - 1, 0);
+      } else {
+        // Tab: 下へ移動
+        historySelectedIndex = Math.min(historySelectedIndex + 1, historyItems.length - 1);
+      }
       updateHistorySelection(historyItems);
       break;
       
@@ -471,7 +489,6 @@ async function handleBulkUpdate(e) {
 }
 
 // 一括更新用の履歴表示
-// 一括更新用の履歴表示
 async function showHistoryForBulk() {
   // 選択されている社員の履歴を取得（最初の1人のみ）
   if (selectedEmployeeIds.size === 0) {
@@ -495,30 +512,44 @@ async function showHistoryForBulk() {
     let html = '';
     
     // 個人履歴
+    html += `
+      <div class="history-section-title">
+        <span>あなたの履歴</span>
+        <span class="history-section-info">最大5件 / 古いものから自動削除</span>
+      </div>
+    `;
+    
     if (personalHistory.length > 0) {
-      html += '<div style="padding: 8px; background: #f8f9fa; font-weight: 600; font-size: 12px; color: #495057;">あなたの履歴</div>';
       personalHistory.forEach(item => {
         html += `
-          <div class="history-item" data-destination="${escapeHtml(item.destination)}">
-            ${escapeHtml(item.destination)}
+          <div class="history-item" data-destination="${escapeHtml(item.destination)}" data-history-id="${item.id}">
+            <span>${escapeHtml(item.destination)}</span>
+            <button class="history-delete-btn" data-history-id="${item.id}" data-employee-id="${firstEmployeeId}">削除</button>
           </div>
         `;
       });
     } else {
-      html += '<div style="padding: 8px; background: #f8f9fa; font-weight: 600; font-size: 12px; color: #495057;">あなたの履歴</div>';
       html += '<div class="history-item" style="color: #6c757d;">履歴がありません</div>';
     }
     
     // 共通履歴
+    html += `
+      <div class="history-section-title" style="margin-top: 4px;">
+        <span>共通履歴</span>
+        <span class="history-section-info">最大20件 / 管理画面で管理</span>
+      </div>
+    `;
+    
     if (commonHistory.length > 0) {
-      html += '<div style="padding: 8px; background: #e9ecef; font-weight: 600; font-size: 12px; color: #495057; margin-top: 4px;">共通履歴</div>';
       commonHistory.forEach(item => {
         html += `
           <div class="history-item" data-destination="${escapeHtml(item.destination)}">
-            ${escapeHtml(item.destination)}
+            <span>${escapeHtml(item.destination)}</span>
           </div>
         `;
       });
+    } else {
+      html += '<div class="history-item" style="color: #6c757d;">履歴がありません</div>';
     }
     
     historyDropdown.innerHTML = html;
@@ -542,6 +573,20 @@ async function showHistoryForBulk() {
           historySelectedIndex = index;
         });
       }
+    });
+    
+    // 削除ボタンのイベントリスナー（追加）
+    historyDropdown.querySelectorAll('.history-delete-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation(); // 親要素のクリックイベントを防ぐ
+        
+        const historyId = btn.dataset.historyId;
+        const employeeId = btn.dataset.employeeId;
+        
+        if (confirm('この履歴を削除しますか？')) {
+          await deletePersonalHistory(historyId, employeeId);
+        }
+      });
     });
     
     historyDropdown.classList.add('show');
@@ -652,3 +697,25 @@ window.addEventListener('beforeunload', () => {
     clearInterval(autoRefreshTimer);
   }
 });
+
+// 個人履歴削除
+async function deletePersonalHistory(historyId, employeeId) {
+  try {
+    showLoading(true);
+    const response = await fetch(`${API_BASE}/api/history/${historyId}`, {
+      method: 'DELETE'
+    });
+    
+    if (!response.ok) throw new Error('削除に失敗しました');
+    
+    showMessage('履歴を削除しました', 'success');
+    
+    // 履歴を再読み込み
+    await showHistoryForBulk();
+  } catch (error) {
+    console.error(error);
+    showMessage('エラー: ' + error.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
