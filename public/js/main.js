@@ -158,6 +158,15 @@ function setupEventListeners() {
   bulkDestination.addEventListener('focus', () => showHistoryForBulk());
   bulkDestination.addEventListener('input', () => showHistoryForBulk());
   
+  // 行き先入力欄でEnterキーを押したら戻り入力欄へ移動
+  bulkDestination.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // フォーム送信を防ぐ
+      document.getElementById('bulkReturn').focus();
+      historyDropdown.classList.remove('show'); // 履歴を閉じる
+    }
+  });
+  
   // 履歴ドロップダウン外クリックで閉じる
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.history-group')) {
@@ -387,6 +396,7 @@ async function handleBulkUpdate(e) {
 }
 
 // 一括更新用の履歴表示
+// 一括更新用の履歴表示
 async function showHistoryForBulk() {
   // 選択されている社員の履歴を取得（最初の1人のみ）
   if (selectedEmployeeIds.size === 0) {
@@ -396,7 +406,65 @@ async function showHistoryForBulk() {
   }
   
   const firstEmployeeId = Array.from(selectedEmployeeIds)[0];
-  await showHistoryWithCommon(firstEmployeeId, historyDropdown, bulkDestination);
+  
+  try {
+    // 個人履歴を取得
+    const personalResponse = await fetch(`${API_BASE}/api/history/${firstEmployeeId}`);
+    const personalHistory = personalResponse.ok ? await personalResponse.json() : [];
+    
+    // 共通履歴を取得
+    const commonResponse = await fetch(`${API_BASE}/api/common-history`);
+    const commonHistory = commonResponse.ok ? await commonResponse.json() : [];
+    
+    // HTML生成
+    let html = '';
+    
+    // 個人履歴
+    if (personalHistory.length > 0) {
+      html += '<div style="padding: 8px; background: #f8f9fa; font-weight: 600; font-size: 12px; color: #495057;">あなたの履歴</div>';
+      personalHistory.forEach(item => {
+        html += `
+          <div class="history-item" data-destination="${escapeHtml(item.destination)}">
+            ${escapeHtml(item.destination)}
+          </div>
+        `;
+      });
+    } else {
+      html += '<div style="padding: 8px; background: #f8f9fa; font-weight: 600; font-size: 12px; color: #495057;">あなたの履歴</div>';
+      html += '<div class="history-item" style="color: #6c757d;">履歴がありません</div>';
+    }
+    
+    // 共通履歴
+    if (commonHistory.length > 0) {
+      html += '<div style="padding: 8px; background: #e9ecef; font-weight: 600; font-size: 12px; color: #495057; margin-top: 4px;">共通履歴</div>';
+      commonHistory.forEach(item => {
+        html += `
+          <div class="history-item" data-destination="${escapeHtml(item.destination)}">
+            ${escapeHtml(item.destination)}
+          </div>
+        `;
+      });
+    }
+    
+    historyDropdown.innerHTML = html;
+    
+    // 履歴アイテムクリック時の処理（修正: 戻り入力欄へフォーカス）
+    historyDropdown.querySelectorAll('.history-item').forEach(item => {
+      if (item.dataset.destination) {
+        item.addEventListener('click', () => {
+          bulkDestination.value = item.dataset.destination;
+          historyDropdown.classList.remove('show');
+          document.getElementById('bulkReturn').focus(); // 追加: 戻り入力欄へフォーカス
+        });
+      }
+    });
+    
+    historyDropdown.classList.add('show');
+  } catch (error) {
+    console.error(error);
+    historyDropdown.innerHTML = '<div class="history-item">履歴の読み込みに失敗しました</div>';
+    historyDropdown.classList.add('show');
+  }
 }
 
 // 履歴表示共通処理
@@ -499,68 +567,3 @@ window.addEventListener('beforeunload', () => {
     clearInterval(autoRefreshTimer);
   }
 });
-
-// ========================================
-// 共通履歴機能
-// ========================================
-
-// 共通履歴を含む履歴表示
-async function showHistoryWithCommon(employeeId, dropdownElement, inputElement) {
-  try {
-    // 個人履歴を取得
-    const personalResponse = await fetch(`${API_BASE}/api/history/${employeeId}`);
-    const personalHistory = personalResponse.ok ? await personalResponse.json() : [];
-    
-    // 共通履歴を取得
-    const commonResponse = await fetch(`${API_BASE}/api/common-history`);
-    const commonHistory = commonResponse.ok ? await commonResponse.json() : [];
-    
-    // HTML生成
-    let html = '';
-    
-    // 個人履歴
-    if (personalHistory.length > 0) {
-      html += '<div style="padding: 8px; background: #f8f9fa; font-weight: 600; font-size: 12px; color: #495057;">あなたの履歴</div>';
-      personalHistory.forEach(item => {
-        html += `
-          <div class="history-item" data-destination="${escapeHtml(item.destination)}">
-            ${escapeHtml(item.destination)}
-          </div>
-        `;
-      });
-    } else {
-      html += '<div style="padding: 8px; background: #f8f9fa; font-weight: 600; font-size: 12px; color: #495057;">あなたの履歴</div>';
-      html += '<div class="history-item" style="color: #6c757d;">履歴がありません</div>';
-    }
-    
-    // 共通履歴
-    if (commonHistory.length > 0) {
-      html += '<div style="padding: 8px; background: #e9ecef; font-weight: 600; font-size: 12px; color: #495057; margin-top: 4px;">共通履歴</div>';
-      commonHistory.forEach(item => {
-        html += `
-          <div class="history-item" data-destination="${escapeHtml(item.destination)}">
-            ${escapeHtml(item.destination)}
-          </div>
-        `;
-      });
-    }
-    
-    dropdownElement.innerHTML = html;
-    
-    // 履歴アイテムクリック時の処理
-    dropdownElement.querySelectorAll('.history-item').forEach(item => {
-      if (item.dataset.destination) {
-        item.addEventListener('click', () => {
-          inputElement.value = item.dataset.destination;
-          dropdownElement.classList.remove('show');
-        });
-      }
-    });
-    
-    dropdownElement.classList.add('show');
-  } catch (error) {
-    console.error(error);
-    dropdownElement.innerHTML = '<div class="history-item">履歴の読み込みに失敗しました</div>';
-    dropdownElement.classList.add('show');
-  }
-}
