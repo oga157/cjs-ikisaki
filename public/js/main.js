@@ -10,6 +10,7 @@ let employees = [];
 let selectedEmployeeIds = new Set();
 let appSettings = { auto_refresh_minutes: 0 };
 let currentEditingEmployeeId = null;
+let historySelectedIndex = -1;
 
 // DOM要素
 const employeeTableBody = document.getElementById('employeeTableBody');
@@ -155,24 +156,98 @@ function setupEventListeners() {
   bulkForm.addEventListener('submit', handleBulkUpdate);
   
   // 行き先入力フォーカス時に履歴を表示
-  bulkDestination.addEventListener('focus', () => showHistoryForBulk());
-  bulkDestination.addEventListener('input', () => showHistoryForBulk());
-  
-  // 行き先入力欄でEnterキーを押したら戻り入力欄へ移動
-  bulkDestination.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault(); // フォーム送信を防ぐ
-      document.getElementById('bulkReturn').focus();
-      historyDropdown.classList.remove('show'); // 履歴を閉じる
-    }
+  bulkDestination.addEventListener('focus', () => {
+    historySelectedIndex = -1; // リセット
+    showHistoryForBulk();
   });
+  bulkDestination.addEventListener('input', () => {
+    historySelectedIndex = -1; // リセット
+    showHistoryForBulk();
+  });
+  
+  // 行き先入力欄でキー操作
+  bulkDestination.addEventListener('keydown', handleHistoryKeydown);
   
   // 履歴ドロップダウン外クリックで閉じる
   document.addEventListener('click', (e) => {
     if (!e.target.closest('.history-group')) {
       historyDropdown.classList.remove('show');
+      historySelectedIndex = -1;
     }
   });
+}
+
+// 履歴のキーボード操作ハンドラ
+function handleHistoryKeydown(e) {
+  const isHistoryOpen = historyDropdown.classList.contains('show');
+  const historyItems = historyDropdown.querySelectorAll('.history-item[data-destination]');
+  
+  if (!isHistoryOpen || historyItems.length === 0) {
+    // 履歴が開いていない、または項目がない場合
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('bulkReturn').focus();
+      historyDropdown.classList.remove('show');
+    }
+    return;
+  }
+  
+  switch (e.key) {
+    case 'ArrowDown':
+      e.preventDefault();
+      // 下へ移動
+      historySelectedIndex = Math.min(historySelectedIndex + 1, historyItems.length - 1);
+      updateHistorySelection(historyItems);
+      break;
+      
+    case 'ArrowUp':
+      e.preventDefault();
+      // 上へ移動
+      historySelectedIndex = Math.max(historySelectedIndex - 1, 0);
+      updateHistorySelection(historyItems);
+      break;
+      
+    case 'Enter':
+      e.preventDefault();
+      // 選択を確定
+      if (historySelectedIndex >= 0 && historySelectedIndex < historyItems.length) {
+        const selectedItem = historyItems[historySelectedIndex];
+        bulkDestination.value = selectedItem.dataset.destination;
+        historyDropdown.classList.remove('show');
+        document.getElementById('bulkReturn').focus();
+        historySelectedIndex = -1;
+      } else {
+        // 何も選択されていない場合は戻り入力欄へ移動
+        document.getElementById('bulkReturn').focus();
+        historyDropdown.classList.remove('show');
+      }
+      break;
+      
+    case 'Escape':
+      e.preventDefault();
+      // 履歴を閉じる
+      historyDropdown.classList.remove('show');
+      historySelectedIndex = -1;
+      break;
+  }
+}
+
+// 履歴の選択状態を更新
+function updateHistorySelection(historyItems) {
+  // すべての選択を解除
+  historyItems.forEach(item => item.classList.remove('selected'));
+  
+  // 現在の選択を適用
+  if (historySelectedIndex >= 0 && historySelectedIndex < historyItems.length) {
+    const selectedItem = historyItems[historySelectedIndex];
+    selectedItem.classList.add('selected');
+    
+    // スクロールして選択項目を表示
+    selectedItem.scrollIntoView({
+      block: 'nearest',
+      behavior: 'smooth'
+    });
+  }
 }
 
 async function loadSettings() {
@@ -449,12 +524,22 @@ async function showHistoryForBulk() {
     historyDropdown.innerHTML = html;
     
     // 履歴アイテムクリック時の処理（修正: 戻り入力欄へフォーカス）
-    historyDropdown.querySelectorAll('.history-item').forEach(item => {
+    historyDropdown.querySelectorAll('.history-item').forEach((item, index) => {
       if (item.dataset.destination) {
+        // クリック時
         item.addEventListener('click', () => {
           bulkDestination.value = item.dataset.destination;
           historyDropdown.classList.remove('show');
-          document.getElementById('bulkReturn').focus(); // 追加: 戻り入力欄へフォーカス
+          document.getElementById('bulkReturn').focus();
+          historySelectedIndex = -1;
+        });
+        
+        // マウスホバー時に選択状態を更新
+        item.addEventListener('mouseenter', () => {
+          const allItems = historyDropdown.querySelectorAll('.history-item[data-destination]');
+          allItems.forEach(i => i.classList.remove('selected'));
+          item.classList.add('selected');
+          historySelectedIndex = index;
         });
       }
     });
