@@ -7,7 +7,31 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div class="container">
+  <!-- ログインモーダル -->
+  <div class="login-modal" id="loginModal">
+    <div class="login-content">
+      <h2>🔐 ログイン</h2>
+      <p>ログインコードを入力してください</p>
+      <form id="loginForm">
+        <div class="form-group">
+          <input 
+            type="password" 
+            id="loginCode" 
+            placeholder="ログインコード"
+            maxlength="12"
+            required
+            autocomplete="off"
+          >
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          ログイン
+        </button>
+      </form>
+      <div id="loginError" class="login-error"></div>
+      <div id="loginLockMessage" class="login-lock-message"></div>
+    </div>
+  </div>
+  <div class="container" id="mainContent" style="display: none;">
     <!-- ヘッダー -->
     <div class="header">
       <h1>⚙️ 管理画面</h1>
@@ -125,6 +149,60 @@
           <!-- JavaScriptで動的に生成 -->
         </div>
       </div>
+      <!-- ログインコード変更セクション -->
+      <div class="admin-section">
+        <h2>🔐 ログインコード変更</h2>
+        <p style="color: #6c757d; margin-bottom: 15px;">
+          メイン画面と管理画面にアクセスするためのログインコードを変更します
+        </p>
+        
+        <form class="employee-form" id="changeCodeForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="currentCode">現在のコード *</label>
+              <input 
+                type="password" 
+                id="currentCode" 
+                placeholder="現在のログインコード"
+                required
+                autocomplete="off"
+              >
+            </div>
+            <div class="form-group">
+              <label for="newCode">新しいコード *</label>
+              <input 
+                type="password" 
+                id="newCode" 
+                placeholder="1〜12文字"
+                minlength="1"
+                maxlength="12"
+                required
+                autocomplete="off"
+              >
+            </div>
+            <div class="form-group">
+              <label for="confirmCode">新しいコード（確認） *</label>
+              <input 
+                type="password" 
+                id="confirmCode" 
+                placeholder="もう一度入力"
+                minlength="1"
+                maxlength="12"
+                required
+                autocomplete="off"
+              >
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary">
+            💾 コードを変更
+          </button>
+        </form>
+        
+        <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+          <strong>⚠️ 注意:</strong> ログインコードを変更すると、すべてのユーザーが再ログインする必要があります。
+        </div>
+      </div>
+    </div>
     </div>
   </div>
 

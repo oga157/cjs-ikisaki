@@ -7,7 +7,31 @@
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <div class="container">
+  <!-- ログインモーダル -->
+  <div class="login-modal" id="loginModal">
+    <div class="login-content">
+      <h2>🔐 ログイン</h2>
+      <p>ログインコードを入力してください</p>
+      <form id="loginForm">
+        <div class="form-group">
+          <input 
+            type="password" 
+            id="loginCode" 
+            placeholder="ログインコード"
+            maxlength="12"
+            required
+            autocomplete="off"
+          >
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+          ログイン
+        </button>
+      </form>
+      <div id="loginError" class="login-error"></div>
+      <div id="loginLockMessage" class="login-lock-message"></div>
+    </div>
+  </div>
+  <div class="container" id="mainContent" style="display: none;">
     <!-- ヘッダー -->
     <div class="header">
       <h1>📋 行き先掲示板</h1>

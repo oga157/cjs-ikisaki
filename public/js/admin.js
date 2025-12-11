@@ -1,3 +1,7 @@
+// ログイン関連
+let loginAttempts = 0;
+let lockUntil = null;
+
 // API Base URL
 const API_BASE = window.location.origin;
 
@@ -29,17 +33,36 @@ const autoRefreshMinutesInput = document.getElementById('autoRefreshMinutes');
 const addCommonHistoryForm = document.getElementById('addCommonHistoryForm');
 const commonDestination = document.getElementById('commonDestination');
 const commonHistoryList = document.getElementById('commonHistoryList');
+const loginModal = document.getElementById('loginModal');
+const loginForm = document.getElementById('loginForm');
+const loginCode = document.getElementById('loginCode');
+const loginError = document.getElementById('loginError');
+const loginLockMessage = document.getElementById('loginLockMessage');
+const mainContent = document.getElementById('mainContent');
+const changeCodeForm = document.getElementById('changeCodeForm');
+const currentCode = document.getElementById('currentCode');
+const newCode = document.getElementById('newCode');
+const confirmCode = document.getElementById('confirmCode');
 
 let commonHistories = [];
 let appSettings = { auto_refresh_minutes: 0 };
 
 // 初期化
 document.addEventListener('DOMContentLoaded', () => {
+  checkAuth();
   loadEmployees();
   loadCommonHistories();
   loadSettings();
   setupEventListeners();
 });
+
+// 認証後の初期化
+function initializeApp() {
+  loadEmployees();
+  loadCommonHistories();
+  loadSettings();
+  setupEventListeners();
+}
 
 // イベントリスナー設定
 function setupEventListeners() {
@@ -57,8 +80,11 @@ function setupEventListeners() {
   // 自動更新設定フォーム
   autoRefreshForm.addEventListener('submit', handleSaveSettings);
   
-  // 共通履歴フォーム（追加）
+  // 共通履歴フォーム
   addCommonHistoryForm.addEventListener('submit', handleAddCommonHistory);
+  
+  // ログインコード変更フォーム
+  changeCodeForm.addEventListener('submit', handleChangeCode);
   
   // モーダル外クリックで閉じる
   deleteModal.addEventListener('click', (e) => {
@@ -73,6 +99,161 @@ function setupEventListeners() {
     }
   });
 }
+
+// ========================================
+// 認証関連
+// ========================================
+
+// 認証チェック
+function checkAuth() {
+  const isLoggedIn = sessionStorage.getItem('isLoggedIn');
+  
+  if (isLoggedIn === 'true') {
+    // ログイン済み
+    showMainContent();
+  } else {
+    // 未ログイン
+    showLoginModal();
+  }
+}
+
+// ログインモーダル表示
+function showLoginModal() {
+  loginModal.style.display = 'flex';
+  mainContent.style.display = 'none';
+  loginCode.focus();
+}
+
+// メインコンテンツ表示
+function showMainContent() {
+  loginModal.style.display = 'none';
+  mainContent.style.display = 'block';
+  initializeApp();
+}
+
+// ログイン処理
+async function handleLogin(e) {
+  e.preventDefault();
+  
+  // ロック中チェック
+  if (lockUntil && Date.now() < lockUntil) {
+    const remainingSeconds = Math.ceil((lockUntil - Date.now()) / 1000);
+    loginLockMessage.textContent = `${remainingSeconds}秒後に再試行できます`;
+    loginLockMessage.classList.add('show');
+    return;
+  }
+  
+  const code = loginCode.value.trim();
+  
+  if (!code) {
+    loginError.textContent = 'ログインコードを入力してください';
+    return;
+  }
+  
+  try {
+    const response = await fetch(`${API_BASE}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.success) {
+      // ログイン成功
+      sessionStorage.setItem('isLoggedIn', 'true');
+      loginAttempts = 0;
+      loginError.textContent = '';
+      loginLockMessage.classList.remove('show');
+      loginCode.value = '';
+      showMainContent();
+    } else {
+      // ログイン失敗
+      loginAttempts++;
+      loginError.textContent = data.error || 'ログインに失敗しました';
+      loginCode.value = '';
+      loginCode.focus();
+      
+      // 5回失敗でロック
+      if (loginAttempts >= 5) {
+        lockUntil = Date.now() + 30000; // 30秒ロック
+        loginLockMessage.textContent = '5回失敗しました。30秒後に再試行できます';
+        loginLockMessage.classList.add('show');
+        loginError.textContent = '';
+        
+        // カウントダウン表示
+        const countdown = setInterval(() => {
+          if (Date.now() >= lockUntil) {
+            clearInterval(countdown);
+            loginLockMessage.classList.remove('show');
+            loginAttempts = 0;
+            lockUntil = null;
+          } else {
+            const remainingSeconds = Math.ceil((lockUntil - Date.now()) / 1000);
+            loginLockMessage.textContent = `${remainingSeconds}秒後に再試行できます`;
+          }
+        }, 1000);
+      }
+    }
+  } catch (error) {
+    console.error(error);
+    loginError.textContent = 'エラーが発生しました';
+  }
+}
+
+// ログインコード変更処理
+async function handleChangeCode(e) {
+  e.preventDefault();
+  
+  const current = currentCode.value.trim();
+  const newCodeValue = newCode.value.trim();
+  const confirm = confirmCode.value.trim();
+  
+  // バリデーション
+  if (!current || !newCodeValue || !confirm) {
+    showMessage('すべての項目を入力してください', 'error');
+    return;
+  }
+  
+  if (newCodeValue !== confirm) {
+    showMessage('新しいコードと確認用コードが一致しません', 'error');
+    return;
+  }
+  
+  if (newCodeValue.length < 1 || newCodeValue.length > 12) {
+    showMessage('新しいコードは1〜12文字で設定してください', 'error');
+    return;
+  }
+  
+  try {
+    showLoading(true);
+    const response = await fetch(`${API_BASE}/api/auth/change-code`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        currentCode: current,
+        newCode: newCodeValue
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (response.ok && data.success) {
+      showMessage('✓ ログインコードを変更しました。次回から新しいコードでログインしてください', 'success');
+      changeCodeForm.reset();
+    } else {
+      showMessage(data.error || 'コードの変更に失敗しました', 'error');
+    }
+  } catch (error) {
+    console.error(error);
+    showMessage('エラー: ' + error.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ログインフォームのイベントリスナー
+loginForm.addEventListener('submit', handleLogin);
 
 // 全体設定読み込み
 async function loadSettings() {
@@ -568,3 +749,4 @@ async function deleteCommonHistory(id) {
 
 // グローバルスコープに関数を公開
 window.deleteCommonHistory = deleteCommonHistory;
+

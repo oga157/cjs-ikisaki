@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -374,6 +375,89 @@ app.put('/api/settings', async (req, res) => {
     );
     
     res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ========================================
+// ログイン認証関連API
+// ========================================
+
+// ログイン認証
+app.post('/api/auth/login', async (req, res) => {
+  const { code } = req.body;
+  
+  if (!code) {
+    return res.status(400).json({ error: 'ログインコードを入力してください' });
+  }
+  
+  try {
+    // 入力されたコードをハッシュ化
+    const hash = crypto.createHash('sha256').update(code).digest('hex');
+    
+    // データベースのハッシュと比較
+    const result = await pool.query(
+      'SELECT login_code_hash FROM login_settings WHERE id = 1'
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(500).json({ error: 'ログイン設定が見つかりません' });
+    }
+    
+    const storedHash = result.rows[0].login_code_hash;
+    
+    if (hash === storedHash) {
+      // 認証成功
+      res.json({ success: true, message: 'ログインしました' });
+    } else {
+      // 認証失敗
+      res.status(401).json({ success: false, error: 'ログインコードが正しくありません' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'サーバーエラー' });
+  }
+});
+
+// ログインコード変更
+app.put('/api/auth/change-code', async (req, res) => {
+  const { currentCode, newCode } = req.body;
+  
+  if (!currentCode || !newCode) {
+    return res.status(400).json({ error: '現在のコードと新しいコードを入力してください' });
+  }
+  
+  if (newCode.length < 1 || newCode.length > 12) {
+    return res.status(400).json({ error: '新しいコードは1〜12文字で設定してください' });
+  }
+  
+  try {
+    // 現在のコードを確認
+    const currentHash = crypto.createHash('sha256').update(currentCode).digest('hex');
+    const result = await pool.query(
+      'SELECT login_code_hash FROM login_settings WHERE id = 1'
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(500).json({ error: 'ログイン設定が見つかりません' });
+    }
+    
+    const storedHash = result.rows[0].login_code_hash;
+    
+    if (currentHash !== storedHash) {
+      return res.status(401).json({ error: '現在のコードが正しくありません' });
+    }
+    
+    // 新しいコードをハッシュ化して保存
+    const newHash = crypto.createHash('sha256').update(newCode).digest('hex');
+    await pool.query(
+      'UPDATE login_settings SET login_code_hash = $1, updated_at = NOW() WHERE id = 1',
+      [newHash]
+    );
+    
+    res.json({ success: true, message: 'ログインコードを変更しました' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'サーバーエラー' });
