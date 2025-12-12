@@ -13,19 +13,18 @@ body {
 }
 
 .container {
-  max-width: 1400px;
+  max-width: 900px;
   margin: 0 auto;
   background: white;
-  border-radius: 15px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
+  min-height: 100vh;
+  box-shadow: 0 0px 20px rgba(0, 0, 0, 0.1);
 }
 
 /* ヘッダー */
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 15px 30px;
+  padding: 12px 20px;
   text-align: center;
   position: relative;
 }
@@ -64,7 +63,7 @@ body {
 .bulk-update-area {
   background: #f8f9fa;
   border-bottom: 2px solid #dee2e6;
-  padding: 12px 20px;
+  padding: 10px 15px;
 }
 
 .bulk-update-area h2 {
@@ -312,35 +311,29 @@ th:last-child {
   border-right: none;
 }
 
-th.checkbox-col {
-  width: 50px;
+th.checkbox-col, td.checkbox-col {
+  width: 30px;
   text-align: center;
 }
 
-th.department-col {
+th.department-col, td.department-col {
+  width: 50px;
+}
+
+th.name-col, td.name-col {
+  width: 50px;
+}
+
+th.destination-col, td.destination-col {
+  width: 150px;
+}
+
+th.return-col, td.return-col {
   width: 70px;
 }
 
-th.name-col {
-  width: 80px;
-  font-weight: 600;
-  color: #212529;
-}
-
-th.destination-col {
-  width: 200px;
-}
-
-th.return-col {
-  width: 100px;
-}
-
-th.set-at-col {
-  width: 120px;
-}
-
-th.remarks-col {
-  width: 250px;
+th.set-at-col, td.set-at-col {
+  width: 60px;
 }
 
 tbody tr {
@@ -377,9 +370,9 @@ td.checkbox-col {
 
 .status-badge {
   display: inline-block;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -754,4 +747,37 @@ input[type="checkbox"] {
 
 .login-lock-message.show {
   display: block;
+}
+
+/* レスポンシブ: 小さい画面用 */
+@media (max-width: 950px) {
+  .container {
+    max-width: 100%;
+  }
+  
+  th, td {
+    font-size: 10px;
+    padding: 5px 3px;
+  }
+  
+  th.checkbox-col, td.checkbox-col {
+    width: 35px;
+  }
+  
+  th.department-col, td.department-col,
+  th.name-col, td.name-col {
+    width: 60px;
+  }
+  
+  th.destination-col, td.destination-col {
+    width: 120px;
+  }
+  
+  th.return-col, td.return-col {
+    width: 80px;
+  }
+  
+  th.set-at-col, td.set-at-col {
+    width: 110px;
+  }
 }

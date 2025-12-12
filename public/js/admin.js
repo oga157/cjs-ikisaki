@@ -317,7 +317,7 @@ async function loadEmployees() {
     
     employees = await response.json();
     renderEmployeeList();
-    showMessage('データを読み込みました', 'success');
+    //showMessage('データを読み込みました', 'success');
   } catch (error) {
     console.error(error);
     showMessage('エラー: ' + error.message, 'error');
