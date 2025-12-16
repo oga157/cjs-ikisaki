@@ -171,9 +171,22 @@ function setupEventListeners() {
   bulkDestination.addEventListener('keydown', handleHistoryKeydown);
   
   // 戻り入力欄にフォーカス時に履歴を閉じる
-  document.getElementById('bulkReturn').addEventListener('focus', () => {
+  const bulkReturn = document.getElementById('bulkReturn');
+  bulkReturn.addEventListener('focus', () => {
     historyDropdown.classList.remove('show');
     historySelectedIndex = -1;
+  });
+  
+  // 戻り入力欄でEnterキーを押したら更新ボタンにフォーカス（追加）
+  bulkReturn.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      // 履歴が開いていたら確実に閉じる
+      historyDropdown.classList.remove('show');
+      historySelectedIndex = -1;
+      // 更新ボタンにフォーカス
+      bulkUpdateBtn.focus();
+    }
   });
   
   // 履歴ドロップダウン外クリックで閉じる
@@ -194,8 +207,9 @@ function handleHistoryKeydown(e) {
     // 履歴が開いていない、または項目がない場合
     if (e.key === 'Enter') {
       e.preventDefault();
-      document.getElementById('bulkReturn').focus();
       historyDropdown.classList.remove('show');
+      historySelectedIndex = -1;
+      document.getElementById('bulkReturn').focus();
     }
     return;
   }
@@ -229,18 +243,18 @@ function handleHistoryKeydown(e) {
       
     case 'Enter':
       e.preventDefault();
+      // 履歴を確実に閉じる
+      historyDropdown.classList.remove('show');
+      historySelectedIndex = -1;
+      
       // 選択を確定
       if (historySelectedIndex >= 0 && historySelectedIndex < historyItems.length) {
         const selectedItem = historyItems[historySelectedIndex];
         bulkDestination.value = selectedItem.dataset.destination;
-        historyDropdown.classList.remove('show');
-        document.getElementById('bulkReturn').focus();
-        historySelectedIndex = -1;
-      } else {
-        // 何も選択されていない場合は戻り入力欄へ移動
-        document.getElementById('bulkReturn').focus();
-        historyDropdown.classList.remove('show');
       }
+      
+      // 戻り入力欄へ移動
+      document.getElementById('bulkReturn').focus();
       break;
       
     case 'Escape':
@@ -577,10 +591,11 @@ async function showHistoryForBulk() {
       }
     });
     
-    // 削除ボタンのイベントリスナー（追加）
+    // 削除ボタンのイベントリスナー
     historyDropdown.querySelectorAll('.history-delete-btn').forEach(btn => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation(); // 親要素のクリックイベントを防ぐ
+        e.preventDefault(); // デフォルト動作を防ぐ
         
         const historyId = btn.dataset.historyId;
         const employeeId = btn.dataset.employeeId;
@@ -588,6 +603,11 @@ async function showHistoryForBulk() {
         if (confirm('この履歴を削除しますか？')) {
           await deletePersonalHistory(historyId, employeeId);
         }
+      });
+      
+      // キーボードイベントも防ぐ（追加）
+      btn.addEventListener('keydown', (e) => {
+        e.stopPropagation();
       });
     });
     
