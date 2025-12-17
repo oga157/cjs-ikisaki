@@ -243,15 +243,16 @@ function handleHistoryKeydown(e) {
       
     case 'Enter':
       e.preventDefault();
-      // 履歴を確実に閉じる
-      historyDropdown.classList.remove('show');
-      historySelectedIndex = -1;
       
-      // 選択を確定
+      // 選択を確定（履歴を閉じる前に実行）
       if (historySelectedIndex >= 0 && historySelectedIndex < historyItems.length) {
         const selectedItem = historyItems[historySelectedIndex];
         bulkDestination.value = selectedItem.dataset.destination;
       }
+      
+      // 履歴を閉じる
+      historyDropdown.classList.remove('show');
+      historySelectedIndex = -1;
       
       // 戻り入力欄へ移動
       document.getElementById('bulkReturn').focus();
