@@ -455,7 +455,16 @@ function updateFormWithSelectedEmployee() {
     return;
   }
   
-  // 最初に選択された社員の情報を取得
+  // フォームに既に入力がある場合は上書きしない
+  const hasDestinationInput = bulkDestination.value.trim() !== '';
+  const hasReturnInput = document.getElementById('bulkReturn').value.trim() !== '';
+  
+  if (hasDestinationInput || hasReturnInput) {
+    // 既に入力がある場合は何もしない
+    return;
+  }
+  
+  // 入力がない場合のみ、最初に選択された社員の情報を取得してコピー
   const firstSelectedId = Array.from(selectedEmployeeIds)[0];
   const employee = employees.find(e => e.id === firstSelectedId);
   
