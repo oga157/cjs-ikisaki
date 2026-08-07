@@ -526,10 +526,6 @@ async function handleBulkClear() {
     return;
   }
 
-  if (!confirm(`選択した${selectedEmployeeIds.size}名の行き先・戻りをクリアします。よろしいですか？`)) {
-    return;
-  }
-
   try {
     showLoading(true);
     const response = await fetch(`${API_BASE}/api/whereabouts/bulk`, {
