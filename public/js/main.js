@@ -16,6 +16,7 @@ let historySelectedIndex = -1;
 const employeeTableBody = document.getElementById('employeeTableBody');
 const selectAllCheckbox = document.getElementById('selectAll');
 const bulkUpdateBtn = document.getElementById('bulkUpdateBtn');
+const bulkClearBtn = document.getElementById('bulkClearBtn');
 const bulkForm = document.getElementById('bulkForm');
 const bulkDestination = document.getElementById('bulkDestination');
 const historyDropdown = document.getElementById('historyDropdown');
@@ -156,6 +157,9 @@ function setupEventListeners() {
   
   // 一括更新フォーム
   bulkForm.addEventListener('submit', handleBulkUpdate);
+
+  // 一括クリアボタン
+  bulkClearBtn.addEventListener('click', handleBulkClear);
   
   // 行き先入力フォーカス時に履歴を表示
   bulkDestination.addEventListener('focus', () => {
@@ -433,6 +437,7 @@ function updateSelectAllState() {
 // 一括更新ボタンの有効/無効制御
 function updateBulkUpdateButton() {
   bulkUpdateBtn.disabled = selectedEmployeeIds.size === 0;
+  bulkClearBtn.disabled = selectedEmployeeIds.size === 0;
 }
 
 // 選択解除
@@ -506,6 +511,46 @@ async function handleBulkUpdate(e) {
     // データ再読み込み
     await loadEmployees();
     showMessage('更新が完了しました', 'success');
+  } catch (error) {
+    console.error(error);
+    showMessage('エラー: ' + error.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+// 一括クリア処理（行き先・戻りを空にして在席に戻す）
+async function handleBulkClear() {
+  if (selectedEmployeeIds.size === 0) {
+    showMessage('社員を選択してください', 'error');
+    return;
+  }
+
+  if (!confirm(`選択した${selectedEmployeeIds.size}名の行き先・戻りをクリアします。よろしいですか？`)) {
+    return;
+  }
+
+  try {
+    showLoading(true);
+    const response = await fetch(`${API_BASE}/api/whereabouts/bulk`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        employeeIds: Array.from(selectedEmployeeIds),
+        destination: '',
+        return_time: '',
+        remarks: ''
+      })
+    });
+
+    if (!response.ok) throw new Error('クリアに失敗しました');
+
+    // フォームもクリア
+    bulkDestination.value = '';
+    document.getElementById('bulkReturn').value = '';
+
+    await loadEmployees();
+    showMessage('クリアが完了しました', 'success');
   } catch (error) {
     console.error(error);
     showMessage('エラー: ' + error.message, 'error');
